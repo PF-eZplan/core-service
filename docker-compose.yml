@@ -1,0 +1,35 @@
+services:
+  # 1. 스프링 부트 애플리케이션 컨테이너
+  api:
+    image: ${DOCKERHUB_USERNAME}/calbak-api:latest
+    container_name: calbak-api
+    ports:
+      - "8080:8080"
+    environment:
+      # dev 설정이 아닌 기본(운영) 설정으로 실행
+      - SPRING_PROFILES_ACTIVE=default
+      # DB 컨테이너와 통신하기 위한 주소 (localhost 대신 컨테이너 이름 'db' 사용)
+      - DB_URL=jdbc:postgresql://db:5432/calbak_db
+      - DB_USERNAME=calbak_user
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - db
+    restart: always
+
+  # 2. PostgreSQL 데이터베이스 컨테이너
+  db:
+    image: postgres:15
+    container_name: calbak-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: calbak_user
+      # .env 파일에서 넘겨받은 진짜 비밀번호 주입
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: calbak_db
+    volumes:
+      - calbak-db-data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  calbak-db-data:

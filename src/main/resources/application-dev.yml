@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    password: calbak_password
+  jpa:
+    hibernate:
+      ddl-auto: update        # 개발 환경에서만 테이블 자동 업데이트 허용
+    show-sql: true            # 개발 환경에서만 SQL 로그 노출 허용
+    properties:
+      hibernate:
+        format_sql: true      # 쿼리 보기 좋게 정렬
