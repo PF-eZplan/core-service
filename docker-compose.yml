@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    container_name: calbak-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: calbak_user
+      POSTGRES_PASSWORD: calbak_password
+      POSTGRES_DB: calbak_db
+    volumes:
+      - calbak-db-data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  calbak-db-data:
