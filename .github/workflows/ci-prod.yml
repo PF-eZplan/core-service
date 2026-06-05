@@ -1,45 +1,43 @@
 name: CI-PROD (Final Check before Main)
 
 on:
-  pull_request:
-    branches: [ "main" ]
+    pull_request:
+        branches: [ "main" ]
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+    build:
+        runs-on: ubuntu-latest
 
-    # 테스트를 위해 가상 서버에 PostgreSQL 임시 실행
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: calbak_user
-          POSTGRES_PASSWORD: calbak_password
-          POSTGRES_DB: calbak_db
-        ports:
-          - 5432:5432
-        # DB가 완전히 켜질 때까지 기다리는 헬스체크 옵션
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        services:
+            postgres:
+                image: postgres:15
+                env:
+                    POSTGRES_USER: calbak_user
+                    POSTGRES_PASSWORD: calbak_password
+                    POSTGRES_DB: calbak_db
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+            -   name: Set up JDK 17
+                uses: actions/setup-java@v4
+                with:
+                    java-version: '17'
+                    distribution: 'temurin'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+            -   name: Grant execute permission for gradlew
+                run: chmod +x gradlew
 
-      - name: Build and Test with Gradle
-        run: ./gradlew build -Dspring.profiles.active=dev
+            -   name: Build and Test with Gradle
+                run: ./gradlew build
