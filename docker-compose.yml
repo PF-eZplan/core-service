@@ -5,8 +5,8 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: calbak_user
-      POSTGRES_PASSWORD: calbak_password
+      POSTGRES_USER: ${DB_USERNAME:-calbak_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-calbak_password}
       POSTGRES_DB: calbak_db
     volumes:
       - calbak-db-data:/var/lib/postgresql/data
