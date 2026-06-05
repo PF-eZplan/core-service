@@ -1,0 +1,24 @@
+# 1. 리뷰어 자동 추가 활성화
+addReviewers: true
+
+# 2. 작성자(Author)를 담당자(Assignee)로 지정
+addAssignees: author
+
+# 3. draft로 올릴 땐 무시
+ignoreDraft: true
+
+# 4. 리뷰어 명단
+reviewers:
+ - ji-circle
+#  - 여기에 이름 모두 적기 (나 포함)
+
+# 5. 리뷰어 n명(나 포함) 모두 지정 (0으로 두면 리스트 전체 추가)
+# numberOfReviewers: n
+
+# 6. 담당자는 작성자 본인 1명만
+numberOfAssignees: 1
+
+# 7. 'wip' 키워드가 제목에 있으면 실행 안 함
+skipKeywords:
+  - wip
+  - WIP
