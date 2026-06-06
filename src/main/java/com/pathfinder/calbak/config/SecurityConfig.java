@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -17,9 +18,13 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // 일단 엔티티 의존성 에러를 막기 위해 SuccessHandler(DB 로직)를 뺐음
-        // 다음 OAuth 이슈에서 SuccessHandler를 여기에 추가할 예정임
-        http.csrf(csrf -> csrf.disable())
+        http
+            .csrf(csrf -> csrf
+                // CSRF 보안을 활성화하되, 프론트엔드(React 등)가 토큰을 읽을 수 있게 쿠키 방식으로 설정
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                // CSRF 검사를 생략할 특정 API 경로 명시 (예외 처리)
+                .ignoringRequestMatchers("/api/users/additional-info")
+            )
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/users/additional-info").permitAll()
