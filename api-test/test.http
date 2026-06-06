@@ -1,0 +1,15 @@
+### 온보딩 추가 정보 입력 API 테스트
+PATCH http://localhost:8080/api/users/additional-info
+Content-Type: application/json
+
+{
+    "email": "pathfindercau@gmail.com",
+    "nickname": "캘박마스터",
+    "gender": "MALE",
+    "ageGroup": "AGE_20S",
+    "job": "대학생,개발자",
+    "usagePurpose": "수업 관리,일정 알림",
+    "sleepTime": "23:00:00",
+    "wakeUpTime": "07:30:00",
+    "notificationSetting": "MIN_30"
+}

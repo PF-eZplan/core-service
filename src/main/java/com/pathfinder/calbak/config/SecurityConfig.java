@@ -1,5 +1,8 @@
 package com.pathfinder.calbak.config;
 
+import com.pathfinder.calbak.security.OAuth2SuccessHandler;
+import com.pathfinder.calbak.service.CustomOAuth2UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,7 +14,11 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -30,8 +37,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/additional-info").permitAll()
                 .anyRequest().authenticated()
             )
-            .oauth2Login(oauth2 -> {
-            }); // 기본 로그인 폼 띄우기까지만 허용
+            // 구글 로그인 연동
+            .oauth2Login(oauth2 -> oauth2
+                .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                .successHandler(oAuth2SuccessHandler)
+            );
 
         return http.build();
     }
