@@ -4,6 +4,7 @@ import com.pathfinder.calbak.domain.entity.User;
 import com.pathfinder.calbak.dto.UserAdditionalInfoRequest;
 import com.pathfinder.calbak.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +17,10 @@ public class UserService {
     @Transactional
     public void updateAdditionalInfo(UserAdditionalInfoRequest request) {
         // 1. 유저 조회
-        User user = userRepository.findByEmail(request.email())
+        // JwtAuthenticationFilter가 SecurityContext에 등록한 이메일 추출
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
         // 2. 닉네임 중복 검증 (자신의 기존 닉네임과 다를 때만 검사)

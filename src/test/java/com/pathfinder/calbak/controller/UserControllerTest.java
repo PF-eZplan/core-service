@@ -44,12 +44,11 @@ class UserControllerTest {
     private JwtProvider jwtProvider;
 
     @Test
-    @WithMockUser
+    @WithMockUser(username = "test@google.com")
     @DisplayName("유효한 온보딩 정보가 들어오면 200 OK와 성공 메시지를 반환한다.")
     void updateAdditionalInfo_Success() throws Exception {
         // given: 들어올 요청 데이터 세팅
         UserAdditionalInfoRequest request = new UserAdditionalInfoRequest(
-            "test@google.com",
             "새로운닉네임",
             Enums.Gender.MALE,
             Enums.AgeGroup.AGE_20S,
@@ -67,8 +66,10 @@ class UserControllerTest {
             .build();
 
         // given: userRepository가 호출될 때 DB 조회 대신 무조건 이 값을 반환하도록 설정
-        given(userRepository.findByEmail(request.email())).willReturn(Optional.of(mockUser));
-        given(userRepository.existsByNickname(request.nickname())).willReturn(false);
+        given(userRepository.findByEmail("test@google.com"))
+            .willReturn(Optional.of(mockUser));
+        given(userRepository.existsByNickname(request.nickname()))
+            .willReturn(false);
 
         // when & then: API 찌르고 결과 확인
         mockMvc.perform(patch("/api/users/additional-info")

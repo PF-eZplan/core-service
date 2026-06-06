@@ -8,12 +8,16 @@ import com.pathfinder.calbak.domain.enums.Enums;
 import com.pathfinder.calbak.dto.UserAdditionalInfoRequest;
 import com.pathfinder.calbak.repository.UserRepository;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -24,13 +28,28 @@ class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
+    @BeforeEach
+    void setUp() {
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken(
+                "test@test.com",
+                null
+            )
+        );
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     @DisplayName("닉네임이 이미 존재하면 IllegalArgumentException을 던진다")
     void updateAdditionalInfo_DuplicateNickname() {
         // given
         User user = User.builder().email("test@test.com").nickname("기존유저").build();
         UserAdditionalInfoRequest request = new UserAdditionalInfoRequest(
-            "test@test.com", "중복닉네임", Enums.Gender.MALE, Enums.AgeGroup.AGE_20S,
+            "중복닉네임", Enums.Gender.MALE, Enums.AgeGroup.AGE_20S,
             null, null, null, null, Enums.NotificationSetting.NONE
         );
 

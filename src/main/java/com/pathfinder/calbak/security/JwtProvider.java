@@ -34,4 +34,24 @@ public class JwtProvider {
             .signWith(key)
             .compact();
     }
+
+    // 토큰에서 이메일 추출
+    public String getEmailFromToken(String token) {
+        return Jwts.parser()
+            .verifyWith(key)
+            .build()
+            .parseSignedClaims(token)
+            .getPayload()
+            .getSubject();
+    }
+
+    // 토큰 서명 및 만료 여부 검증
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

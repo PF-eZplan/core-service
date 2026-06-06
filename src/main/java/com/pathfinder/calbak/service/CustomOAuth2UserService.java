@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     public OAuth2User processUser(OAuth2User oAuth2User) {
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
+
+        if (email == null || email.isBlank()) {
+            throw new OAuth2AuthenticationException(
+                new OAuth2Error("missing_email"), "구글 계정에서 이메일을 가져올 수 없습니다."
+            );
+        }
 
         // DB에 없는 새로운 유저라면 회원가입(Save) 및 카테고리 자동 생성
         userRepository.findByEmail(email).orElseGet(() -> {

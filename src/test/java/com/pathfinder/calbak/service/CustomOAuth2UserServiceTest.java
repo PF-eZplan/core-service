@@ -7,10 +7,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.pathfinder.calbak.domain.entity.Category;
 import com.pathfinder.calbak.domain.entity.User;
 import com.pathfinder.calbak.domain.enums.Enums;
 import com.pathfinder.calbak.repository.CategoryRepository;
 import com.pathfinder.calbak.repository.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,12 +53,16 @@ class CustomOAuth2UserServiceTest {
             .build();
         given(userRepository.save(any(User.class))).willReturn(savedUser);
 
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Category>> categoryCaptor = ArgumentCaptor.forClass(List.class);
+
         // when
         oAuth2UserService.processUser(oAuth2User);
 
         // then
         verify(userRepository, times(1)).save(any(User.class));
-        verify(categoryRepository, times(1)).saveAll(any());
+        verify(categoryRepository, times(1)).saveAll(categoryCaptor.capture());
+        assertThat(categoryCaptor.getValue()).hasSize(5);
     }
 
     @Test
@@ -92,7 +98,6 @@ class CustomOAuth2UserServiceTest {
         given(oAuth2User.getAttribute("name")).willReturn("신규유저");
         given(userRepository.findByEmail("new@google.com")).willReturn(Optional.empty());
 
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         User savedUser = User.builder()
             .email("new@google.com")
             .name("신규유저")
@@ -101,6 +106,8 @@ class CustomOAuth2UserServiceTest {
             .status(Enums.UserStatus.ACTIVE)
             .build();
         given(userRepository.save(any(User.class))).willReturn(savedUser);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
 
         // when
         oAuth2UserService.processUser(oAuth2User);
