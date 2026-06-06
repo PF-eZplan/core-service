@@ -1,7 +1,11 @@
 package com.pathfinder.calbak.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.pathfinder.calbak.domain.entity.User;
 import com.pathfinder.calbak.domain.enums.Enums;
@@ -87,5 +91,76 @@ class UserServiceTest {
         assertThatThrownBy(() -> userService.updateAdditionalInfo(request))
             .isInstanceOf(UserNotFoundException.class)
             .hasMessage("존재하지 않는 유저입니다.");
+    }
+
+    @Test
+    @DisplayName("정상적인 추가 정보 입력 시 유저 정보가 수정된다")
+    void updateAdditionalInfo_Success() {
+
+        User user = User.builder()
+            .email("test@test.com")
+            .nickname("기존닉네임")
+            .build();
+
+        UserAdditionalInfoRequest request =
+            new UserAdditionalInfoRequest(
+                "새닉네임",
+                Enums.Gender.MALE,
+                Enums.AgeGroup.AGE_20S,
+                "대학생",
+                "수업관리",
+                null,
+                null,
+                Enums.NotificationSetting.MIN_30
+            );
+
+        given(userRepository.findByEmail("test@test.com"))
+            .willReturn(Optional.of(user));
+
+        given(userRepository.existsByNickname("새닉네임"))
+            .willReturn(false);
+
+        userService.updateAdditionalInfo(request);
+
+        assertThat(user.getNickname()).isEqualTo("새닉네임");
+
+        verify(userRepository)
+            .findByEmail("test@test.com");
+
+        verify(userRepository)
+            .existsByNickname("새닉네임");
+    }
+
+    @Test
+    @DisplayName("기존 닉네임과 같으면 중복 검사를 수행하지 않는다")
+    void updateAdditionalInfo_SameNickname() {
+
+        User user = User.builder()
+            .email("test@test.com")
+            .nickname("기존닉네임")
+            .build();
+
+        UserAdditionalInfoRequest request =
+            new UserAdditionalInfoRequest(
+                "기존닉네임",
+                Enums.Gender.MALE,
+                Enums.AgeGroup.AGE_20S,
+                null,
+                null,
+                null,
+                null,
+                Enums.NotificationSetting.NONE
+            );
+
+        given(userRepository.findByEmail("test@test.com"))
+            .willReturn(Optional.of(user));
+
+        userService.updateAdditionalInfo(request);
+
+        verify(userRepository)
+            .findByEmail("test@test.com");
+
+        verify(userRepository, never())
+            .existsByNickname(anyString());
     }
 }
