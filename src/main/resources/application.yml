@@ -18,6 +18,8 @@ spring:
                         client-id: ${GOOGLE_CLIENT_ID}
                         client-secret: ${GOOGLE_CLIENT_SECRET}
                         scope: profile, email
+    flyway:
+        baseline-on-migrate: true
 
 jwt:
     secret: ${JWT_SECRET}
