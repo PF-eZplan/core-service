@@ -25,7 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        String token = extractTokenFromCookie(request);
+        String token = extractToken(request);
 
         // 유효한 토큰이 있으면 SecurityContext에 인증 정보 등록
         if (token != null && jwtProvider.validateToken(token)) {
@@ -33,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
-                    email,
+                    email,  // Principal: authentication.getName()으로 꺼내는 값
                     null,
                     List.of(new SimpleGrantedAuthority("ROLE_USER"))
                 );
@@ -41,6 +41,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * 쿠키 → Authorization 헤더 순서로 JWT를 추출. 브라우저(쿠키)와 API 테스트 도구(Bearer 헤더) 모두 지원!
+     */
+    private String extractToken(HttpServletRequest request) {
+        // 1. 쿠키에서 먼저 시도 (브라우저 기반 요청)
+        String tokenFromCookie = extractTokenFromCookie(request);
+        if (tokenFromCookie != null) {
+            return tokenFromCookie;
+        }
+
+        // 2. Authorization 헤더에서 시도 (API 테스트 도구, 모바일 앱 등)
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+
+        return null;
     }
 
     private String extractTokenFromCookie(HttpServletRequest request) {

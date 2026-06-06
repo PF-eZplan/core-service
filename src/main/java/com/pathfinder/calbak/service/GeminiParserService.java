@@ -1,0 +1,171 @@
+package com.pathfinder.calbak.service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.pathfinder.calbak.dto.ScheduleRecords.ParsedResponse;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class GeminiParserService {
+
+    private final RestTemplate restTemplate;
+
+    @Value("${gemini.api.url}")
+    private String geminiApiUrl;
+
+    @Value("${gemini.api.key}")
+    private String geminiApiKey;
+
+    /**
+     * 텍스트와 이미지를 Gemini API로 전송하여 일정 데이터를 파싱 - 텍스트만, 이미지만(1장 이상), 또는 둘 다 처리 가능
+     */
+    public ParsedResponse parseSchedule(String rawText, List<MultipartFile> images) {
+        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+
+        // 오늘 날짜를 프롬프트에 포함: "이번 주 금요일", "다음 달" 같은 상대 표현 해석에 필요
+        String today = LocalDate.now().toString();
+
+        String prompt = """
+            오늘 날짜는 %s 입니다.
+            제공된 텍스트와 이미지(전단지, 포스터, 자필 메모 등)를 분석하여 일정 데이터를 추출해줘.
+            이미지가 있다면 이미지 속의 날짜, 시간, 장소, 제목을 우선적으로 추출해.
+            단, 이미지가 채팅, 메신저, 문자, 카카오톡, 디스코드, 슬랙 등의 화면인 경우, 메시지 전송 시각, 읽음 표시, 프로필 정보, 상태바 시간 등은 일정 정보로 간주하지 마.
+            실제 일정을 설명하는 메시지 내용에 포함된 날짜, 시간, 장소만 추출해.
+            여러 이미지가 있다면 모든 이미지의 내용을 종합하여 하나의 일정으로 파싱해.
+            "이번 주", "다음 주", "오늘", "내일" 같은 상대적 날짜 표현은 오늘 날짜를 기준으로 계산해.
+            부가적인 설명 없이 오직 JSON만 반환해.
+            - startDate, endDate 형식: YYYY-MM-DD
+            - startTime, endTime 형식: HH:mm:ss (시간이 없으면 null)
+            - isAllDay: 시간이 없으면 true, 있으면 false
+            - endDate: 종료일이 명시되지 않은 단일 일정이면 startDate와 동일한 값으로 설정
+            - endTime: 종료 시간이 없으면 null
+            
+            {
+              "title": "일정 제목",
+              "content": "추가 메모 (없으면 null)",
+              "location": "장소 (없으면 null)",
+              "startDate": "YYYY-MM-DD",
+              "startTime": "HH:mm:ss",
+              "endDate": "YYYY-MM-DD",
+              "endTime": "HH:mm:ss",
+              "isAllDay": true/false
+            }
+            """.formatted(today);
+
+        List<Map<String, Object>> parts = new ArrayList<>();
+
+        // 1. 프롬프트 + 사용자 텍스트를 하나의 text 파트로 결합
+        String combinedText = prompt;
+        if (rawText != null && !rawText.isBlank()) {
+            combinedText += "\n\n사용자 입력: " + rawText;
+        }
+        parts.add(Map.of("text", combinedText));
+
+        // 2. 이미지들을 Base64로 인코딩하여 파트에 추가 (여러 장 모두 처리)
+        if (images != null && !images.isEmpty()) {
+            log.info("업로드 이미지 개수: {}", images.size());
+            for (MultipartFile image : images) {
+
+                log.info(
+                    "이미지명={}, 크기={} bytes, 타입={}",
+                    image.getOriginalFilename(),
+                    image.getSize(),
+                    image.getContentType()
+                );
+
+                try {
+                    String base64Image = Base64.getEncoder().encodeToString(image.getBytes());
+                    parts.add(Map.of("inline_data", Map.of(
+                        "mime_type", image.getContentType() != null ? image.getContentType() : "image/jpeg",
+                        "data", base64Image
+                    )));
+                } catch (Exception e) {
+                    log.error("이미지 인코딩 실패: {}", image.getOriginalFilename(), e);
+                    throw new RuntimeException("이미지를 처리하는 중 오류가 발생했습니다.");
+                }
+            }
+        }
+
+        Map<String, Object> contentMap = Map.of("parts", parts);
+        Map<String, Object> requestBody = Map.of("contents", List.of(contentMap));
+
+        log.info("Gemini 요청 part 개수: {}", parts.size());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
+
+        String requestUrl = geminiApiUrl + "?key=" + geminiApiKey;
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(requestUrl, requestEntity, String.class);
+
+            JsonNode rootNode = objectMapper.readTree(response.getBody());
+            JsonNode candidates = rootNode.path("candidates");
+
+            if (candidates.isMissingNode() || candidates.isEmpty() || candidates.get(0) == null) {
+                throw new RuntimeException("Gemini API 응답에서 일정 데이터를 찾을 수 없습니다.");
+            }
+
+            String responseText = candidates.get(0)
+                .path("content")
+                .path("parts")
+                .get(0)
+                .path("text")
+                .asText();
+
+            // Gemini가 ```json ... ``` 마크다운 블록으로 감싸서 반환하는 경우 제거
+            String cleanJson = responseText
+                .replaceAll("(?s)```json\\s*", "")
+                .replaceAll("(?s)```\\s*", "")
+                .trim();
+
+            ParsedResponse parsed = objectMapper.readValue(cleanJson, ParsedResponse.class);
+
+            // 안전망: Gemini가 프롬프트를 무시하고 endDate를 null로 반환한 경우 startDate로 대체
+            if (parsed.endDate() == null && parsed.startDate() != null) {
+                parsed = new ParsedResponse(
+                    parsed.title(),
+                    parsed.content(),
+                    parsed.location(),
+                    parsed.startDate(),
+                    parsed.startTime(),
+                    parsed.startDate(), // endDate = startDate
+                    parsed.endTime(),
+                    parsed.isAllDay()
+                );
+            }
+
+            return parsed;
+
+        } catch (HttpClientErrorException e) {
+            log.error("Gemini API 4xx 오류");
+            log.error("상태코드: {}", e.getStatusCode());
+            log.error("응답본문: {}", e.getResponseBodyAsString());
+
+            throw new RuntimeException("일정 데이터를 분석하는데 실패했습니다.");
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Gemini API 파싱 실패", e);
+            throw new RuntimeException("일정 데이터를 분석하는데 실패했습니다.");
+        }
+    }
+}
