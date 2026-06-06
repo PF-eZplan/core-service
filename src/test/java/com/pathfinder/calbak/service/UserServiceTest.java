@@ -7,6 +7,7 @@ import com.pathfinder.calbak.domain.entity.User;
 import com.pathfinder.calbak.domain.enums.Enums;
 import com.pathfinder.calbak.dto.UserAdditionalInfoRequest;
 import com.pathfinder.calbak.exception.DuplicateNicknameException;
+import com.pathfinder.calbak.exception.UserNotFoundException;
 import com.pathfinder.calbak.repository.UserRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -61,5 +62,30 @@ class UserServiceTest {
         assertThatThrownBy(() -> userService.updateAdditionalInfo(request))
             .isInstanceOf(DuplicateNicknameException.class)
             .hasMessage("이미 사용 중인 닉네임입니다.");
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 유저면 UserNotFoundException을 던진다")
+    void updateAdditionalInfo_UserNotFound() {
+
+        // given
+        UserAdditionalInfoRequest request = new UserAdditionalInfoRequest(
+            "닉네임",
+            Enums.Gender.MALE,
+            Enums.AgeGroup.AGE_20S,
+            null,
+            null,
+            null,
+            null,
+            Enums.NotificationSetting.NONE
+        );
+
+        given(userRepository.findByEmail("test@test.com"))
+            .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.updateAdditionalInfo(request))
+            .isInstanceOf(UserNotFoundException.class)
+            .hasMessage("존재하지 않는 유저입니다.");
     }
 }
