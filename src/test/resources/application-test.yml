@@ -1,0 +1,15 @@
+spring:
+    flyway:
+        enabled: false
+    datasource:
+        url: 'jdbc:h2:mem:testdb;MODE=PostgreSQL'
+        driver-class-name: org.h2.Driver
+        username: sa
+        password:
+    jpa:
+        hibernate:
+            ddl-auto: create-drop   # validate → create-drop (H2가 테이블 만들어줘야 함)
+        show-sql: true
+        properties:
+            hibernate:
+                format_sql: true
