@@ -87,3 +87,6 @@ tmp/
 
 ### VS Code ###
 .vscode/
+
+api-test/http-client.env.json
+api-test/http-client.private.env.json

@@ -12,3 +12,7 @@ spring:
     flyway:
         # 로컬/개발 환경에서만 초기 스키마 히스토리를 강제로 맞추기 위해 사용
         baseline-on-migrate: true
+
+app:
+    cookie:
+        secure: false

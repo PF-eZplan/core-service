@@ -13,3 +13,30 @@ spring:
         properties:
             hibernate:
                 format_sql: true
+
+    # 테스트 렌더링 시 필요한 가짜 환경변수들 추가
+    security:
+        oauth2:
+            client:
+                registration:
+                    google:
+                        client-id: test-client-id
+                        client-secret: test-client-secret
+                        scope: profile, email
+
+# 테스트용 JWT 시크릿 (운영 시크릿과 무관한 더미값)
+jwt:
+    secret: c3ByaW5nLWJvb3Qtand0LXR1dG9yaWFsLXNlY3JldC1rZXktdGVzdA==
+    access-token-expiry: 1800000
+    refresh-token-expiry: 1209600000
+
+app:
+    frontend:
+        url: http://localhost:3000
+    cookie:
+        secure: false
+
+gemini:
+    api:
+        key: test-api-key
+        url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent

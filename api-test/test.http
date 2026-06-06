@@ -1,0 +1,16 @@
+### 온보딩 추가 정보 입력 API 테스트
+### 사전 조건: 구글 로그인 완료 후 access_token 쿠키가 발급된 상태
+PATCH http://localhost:8080/api/users/additional-info
+Content-Type: application/json
+Cookie: access_token=<로그인_후_발급된_JWT_토큰>
+
+{
+    "nickname": "캘박마스터",
+    "gender": "MALE",
+    "ageGroup": "AGE_20S",
+    "job": "대학생,개발자",
+    "usagePurpose": "수업 관리,일정 알림",
+    "sleepTime": "23:00:00",
+    "wakeUpTime": "07:30:00",
+    "notificationSetting": "MIN_30"
+}

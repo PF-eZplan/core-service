@@ -1,17 +1,27 @@
 package com.pathfinder.calbak.config;
 
+import com.pathfinder.calbak.security.JwtAuthenticationFilter;
+import com.pathfinder.calbak.security.OAuth2SuccessHandler;
+import com.pathfinder.calbak.service.CustomOAuth2UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -19,21 +29,32 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf
-                // CSRF 보안을 활성화하되, 프론트엔드(React 등)가 토큰을 읽을 수 있게 쿠키 방식으로 설정
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                // CSRF 검사를 생략할 특정 API 경로 명시 (예외 처리)
-                .ignoringRequestMatchers("/api/users/additional-info")
-            )
+            .csrf(csrf -> csrf.disable())  // SPA + JWT 구조에서 일단 비활성화
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // JWT 필터를 Spring Security 인증 필터 앞에 삽입
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/users/additional-info").permitAll()
+                // 로그인 페이지, OAuth2 인증 경로는 인증 없이 접근 가능
+                .requestMatchers("/", "/login", "/oauth2/**").permitAll()
+                // 나머지 모든 요청은 인증 필요 (온보딩 endpoint 포함)
                 .anyRequest().authenticated()
             )
-            .oauth2Login(oauth2 -> {
-            }); // 기본 로그인 폼 띄우기까지만 허용
+            // 구글 로그인 연동
+            .oauth2Login(oauth2 -> oauth2
+                .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                .successHandler(oAuth2SuccessHandler)
+            );
 
         return http.build();
+    }
+
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
+        JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration =
+            new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
