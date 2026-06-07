@@ -45,6 +45,15 @@ public class ScheduleController {
             throw new IllegalArgumentException("텍스트나 이미지 중 하나는 반드시 입력해야 합니다.");
         }
 
+        // 이미지 리스트가 있다면 각 파일이 유효한지 검증
+        if (images != null && !images.isEmpty()) {
+            boolean hasValidFile = images.stream()
+                .anyMatch(file -> file != null && !file.isEmpty());
+            if (!hasValidFile) {
+                throw new IllegalArgumentException("유효한 이미지 파일이 없습니다.");
+            }
+        }
+
         List<ParsedResponse> response = geminiParserService.parseSchedule(text, images);
         return ResponseEntity.ok(response);
     }
