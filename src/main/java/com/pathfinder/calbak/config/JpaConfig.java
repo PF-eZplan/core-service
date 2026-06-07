@@ -1,11 +1,11 @@
+// JpaConfig.java
 package com.pathfinder.calbak.config;
 
-import com.pathfinder.calbak.repository.UserRepository;
+import com.pathfinder.calbak.security.AuthenticatedUser;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -16,9 +16,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")
 public class JpaConfig {
 
-    // @Lazy: JPA 초기화 완료 후 UserRepository를 주입받아 순환 의존성 방지
+    // DB 조회 없이 SecurityContext의 AuthenticatedUser에서 UUID를 꺼냄 -> 트랜잭션 flush 중 DB 쿼리로 인한 "Could not commit JPA transaction" 방지
     @Bean
-    public AuditorAware<UUID> auditorProvider(@Lazy UserRepository userRepository) {
+    public AuditorAware<UUID> auditorProvider() {
         return () -> {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -28,8 +28,12 @@ public class JpaConfig {
                 return Optional.empty();
             }
 
-            String email = authentication.getName();
-            return userRepository.findByEmail(email).map(user -> user.getId());
+            // JwtAuthenticationFilter에서 이미 AuthenticatedUser로 저장해둔 값을 꺼냄
+            if (authentication.getPrincipal() instanceof AuthenticatedUser authenticatedUser) {
+                return Optional.of(authenticatedUser.id());
+            }
+
+            return Optional.empty();
         };
     }
 }

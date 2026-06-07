@@ -34,8 +34,7 @@ public class SecurityConfig {
             // JWT 필터를 Spring Security 인증 필터 앞에 삽입
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
-                // 로그인 페이지, OAuth2 인증 경로는 인증 없이 접근 가능
-                .requestMatchers("/", "/login", "/oauth2/**").permitAll()
+                .requestMatchers("/", "/login", "/oauth2/**", "/error").permitAll()
                 // 나머지 모든 요청은 인증 필요 (온보딩 endpoint 포함)
                 .anyRequest().authenticated()
             )
