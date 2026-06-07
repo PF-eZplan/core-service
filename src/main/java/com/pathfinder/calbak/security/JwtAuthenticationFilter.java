@@ -25,10 +25,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        // 쿠키 토큰을 먼저 검사하고, 없거나 만료되었으면 헤더로 Fallback
         String token = extractTokenFromCookie(request);
+        boolean isValid = token != null && jwtProvider.validateToken(token);
+
+        if (!isValid) {
+            token = extractTokenFromHeader(request);
+            isValid = token != null && jwtProvider.validateToken(token);
+        }
 
         // 유효한 토큰이 있으면 SecurityContext에 인증 정보 등록
-        if (token != null && jwtProvider.validateToken(token)) {
+        if (isValid) {
             String email = jwtProvider.getEmailFromToken(token);
 
             UsernamePasswordAuthenticationToken authentication =
@@ -54,5 +61,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             .map(Cookie::getValue)
             .findFirst()
             .orElse(null);
+    }
+
+    private String extractTokenFromHeader(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
     }
 }

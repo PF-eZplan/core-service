@@ -1,0 +1,91 @@
+# ===================================================================
+# [환경 변수 설정]
+# ===================================================================
+
+# 구글 로그인 후 브라우저 개발자도구 → Application → Cookies에서 access_token 값을 복사
+@auth_token = <SET_ME_AT_RUNTIME_tenten>
+
+# 일정을 저장할 카테고리의 UUID (DB에서 확인)
+@category_id = 3ea658f9-b600-4a7b-b8bd-7e5c8722ed33
+
+
+###1-A. Gemini AI 일정 파싱 (텍스트만 - 콤마로 여러 개 입력 테스트)
+POST http://localhost:8080/api/schedules/parse
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+Authorization: Bearer {{auth_token}}
+
+--WebAppBoundary
+Content-Disposition: form-data; name="text"
+
+이번 주 금요일 오후 3시 강남역 회의, 토요일 오전 10시 홍대 카공, 일요일 오후 4시부터 8시까지 중앙이랑 같이 학교 도서관 플젝 회의
+--WebAppBoundary--
+
+
+
+### 1-B. Gemini AI 일정 파싱 (이미지 1장 + 텍스트)
+POST http://localhost:8080/api/schedules/parse
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+Cookie: access_token={{auth_token}}
+
+--WebAppBoundary
+Content-Disposition: form-data; name="text"
+
+이 사진 속 일정 파싱해줘
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="sample.jpg"
+Content-Type: image/jpeg
+
+< ./sample.jpg
+--WebAppBoundary--
+
+
+### 1-C. Gemini AI 일정 파싱 (이미지 여러 장)
+POST http://localhost:8080/api/schedules/parse
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+Cookie: access_token={{auth_token}}
+
+--WebAppBoundary
+Content-Disposition: form-data; name="text"
+
+이 사진들의 일정을 합쳐서 파싱해줘
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="page1.jpg"
+Content-Type: image/jpeg
+
+< ./page1.jpg
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="page2.jpg"
+Content-Type: image/jpeg
+
+< ./page2.jpg
+--WebAppBoundary--
+
+
+### 2. 일정 최종 생성
+POST http://localhost:8080/api/schedules
+Content-Type: application/json
+Cookie: access_token={{auth_token}}
+
+{
+  "categoryId": "{{category_id}}",
+  "title": "멋사 플젝 회의",
+  "content": "API 설계 논의",
+  "location": "학교 도서관",
+  "startDate": "2026-06-10",
+  "startTime": "10:00:00",
+  "endDate": "2026-06-11",
+  "endTime": "18:00:00",
+  "isAllDay": false,
+  "repeatPattern": "NONE",
+  "reminderMinutes": 30
+}
+
+
+### 3. 일간 타임테이블 조회
+GET http://localhost:8080/api/schedules/daily?date=2026-06-13
+Cookie: access_token={{auth_token}}
+
+
+### 4. 월간 달력 조회
+GET http://localhost:8080/api/schedules/monthly?year=2026&month=6
+Cookie: access_token={{auth_token}}
