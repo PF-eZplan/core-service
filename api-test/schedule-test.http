@@ -9,7 +9,7 @@
 @category_id = 3ea658f9-b600-4a7b-b8bd-7e5c8722ed33
 
 
-###1-A. Gemini AI 일정 파싱 (텍스트만 - 콤마로 여러 개 입력 테스트)
+### 1-A. Gemini AI 일정 파싱 (텍스트만 - 콤마로 여러 개 입력 테스트)
 POST http://localhost:8080/api/schedules/parse
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 Authorization: Bearer {{auth_token}}
@@ -17,7 +17,7 @@ Authorization: Bearer {{auth_token}}
 --WebAppBoundary
 Content-Disposition: form-data; name="text"
 
-이번 주 금요일 오후 3시 강남역 회의, 토요일 오전 10시 홍대 카공, 일요일 오후 4시부터 8시까지 중앙이랑 같이 학교 도서관 플젝 회의
+이번 주 금요일 강남역 회의, 매주 일요일 밤 5시에 위클리스크럼 작성, 7월 29일까지 매주 수요일 저녁 7시 동아리 활동
 --WebAppBoundary--
 
 
@@ -32,10 +32,10 @@ Content-Disposition: form-data; name="text"
 
 이 사진 속 일정 파싱해줘
 --WebAppBoundary
-Content-Disposition: form-data; name="images"; filename="sample.jpg"
+Content-Disposition: form-data; name="images"; filename="sample3.jpg"
 Content-Type: image/jpeg
 
-< ./sample.jpg
+< ./sample3.jpg
 --WebAppBoundary--
 
 
@@ -49,19 +49,32 @@ Content-Disposition: form-data; name="text"
 
 이 사진들의 일정을 합쳐서 파싱해줘
 --WebAppBoundary
-Content-Disposition: form-data; name="images"; filename="page1.jpg"
+Content-Disposition: form-data; name="images"; filename="page3.jpg"
 Content-Type: image/jpeg
 
-< ./page1.jpg
+< ./page3.jpg
 --WebAppBoundary
-Content-Disposition: form-data; name="images"; filename="page2.jpg"
+Content-Disposition: form-data; name="images"; filename="page4.jpg"
 Content-Type: image/jpeg
 
-< ./page2.jpg
+< ./page4.jpg
 --WebAppBoundary--
 
 
-### 2. 일정 최종 생성
+### 2. 파싱과 자동 생성(카테고리 자동 할당) 한 번에 테스트
+POST http://localhost:8080/api/schedules/parse-and-create
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+Authorization: Bearer {{auth_token}}
+
+--WebAppBoundary
+Content-Disposition: form-data; name="text"
+
+이번 주 금요일부터 매주 금요일 오후 3시부터 5시까지 카페 알바. 7월 10일까지.
+--WebAppBoundary--
+
+# 이번 주 금요일 오후 11시부터 11시 반까지 상도역 회의
+
+### 3. 일정 최종 생성
 POST http://localhost:8080/api/schedules
 Content-Type: application/json
 Cookie: access_token={{auth_token}}
@@ -81,11 +94,24 @@ Cookie: access_token={{auth_token}}
 }
 
 
-### 3. 일간 타임테이블 조회
-GET http://localhost:8080/api/schedules/daily?date=2026-06-13
+### 4. 상태 변경 - 완료 요청
+PATCH http://localhost:8080/api/schedules/f138b057-7cc8-4447-b1fc-340501aecb6f/complete
+Authorization: Bearer {{auth_token}}
+
+### 5. 상태 변경 - 삭제 요청
+PATCH http://localhost:8080/api/schedules/f138b057-7cc8-4447-b1fc-340501aecb6f/delete
+Authorization: Bearer {{auth_token}}
+
+### 6. 일간 타임테이블 조회
+GET http://localhost:8080/api/schedules/daily?date=2026-06-10
 Cookie: access_token={{auth_token}}
 
 
-### 4. 월간 달력 조회
+### 7. 24시간 타임테이블 내보내기 (방학계획표 용도)
+GET http://localhost:8080/api/schedules/daily/export?date=2026-06-10
+Cookie: access_token={{auth_token}}
+
+
+### 8. 월간 달력 조회
 GET http://localhost:8080/api/schedules/monthly?year=2026&month=6
 Cookie: access_token={{auth_token}}
