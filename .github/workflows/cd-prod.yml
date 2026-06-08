@@ -21,7 +21,9 @@ jobs:
                 with:
                     java-version: '17'
                     distribution: 'temurin'
-                    cache: 'gradle'
+
+            -   name: Setup Gradle
+                uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70
 
             -   name: Grant execute permission for gradlew
                 run: chmod +x gradlew
@@ -61,21 +63,20 @@ jobs:
                     envs: DOCKERHUB_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,JWT_SECRET,GEMINI_API_KEY,FRONTEND_URL
                     script: |
                         cd ~/calbak
-                        cat > .env << 'EOF'
-                        DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
-                        DB_URL=$DB_URL
-                        DB_USERNAME=$DB_USERNAME
-                        DB_PASSWORD=$DB_PASSWORD
-                        GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
-                        GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
-                        JWT_SECRET=$JWT_SECRET
-                        GEMINI_API_KEY=$GEMINI_API_KEY
-                        FRONTEND_URL=$FRONTEND_URL
-                        EOF
-                        
-                        chmod 600 .env
+                        trap 'rm -f ~/calbak/.env' EXIT INT TERM
+                        umask 077
+                        : > .env
+                        printf "DOCKERHUB_USERNAME=%s\n" "$DOCKERHUB_USERNAME" >> .env
+                        printf "DB_URL=%s\n" "$DB_URL" >> .env
+                        printf "DB_USERNAME=%s\n" "$DB_USERNAME" >> .env
+                        printf "DB_PASSWORD=%s\n" "$DB_PASSWORD" >> .env
+                        printf "GOOGLE_CLIENT_ID=%s\n" "$GOOGLE_CLIENT_ID" >> .env
+                        printf "GOOGLE_CLIENT_SECRET=%s\n" "$GOOGLE_CLIENT_SECRET" >> .env
+                        printf "JWT_SECRET=%s\n" "$JWT_SECRET" >> .env
+                        printf "GEMINI_API_KEY=%s\n" "$GEMINI_API_KEY" >> .env
+                        printf "FRONTEND_URL=%s\n" "$FRONTEND_URL" >> .env
+
                         sudo docker-compose pull
                         sudo docker-compose down
                         sudo docker-compose up -d
                         sudo docker image prune -f
-                        rm .env

@@ -28,18 +28,26 @@ jobs:
 
         steps:
             -   name: Checkout code
-                uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+                uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4 sha
                 with:
                     persist-credentials: false
 
             -   name: Set up JDK 17
-                uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4
+                uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1 sha
                 with:
                     java-version: '17'
                     distribution: 'temurin'
+
+            -   name: Setup Gradle
+                uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70
 
             -   name: Grant execute permission for gradlew
                 run: chmod +x gradlew
 
             -   name: Build and Test with Gradle
+                env:
+                    GOOGLE_CLIENT_ID: dummy
+                    GOOGLE_CLIENT_SECRET: dummy
+                    JWT_SECRET: ZHVtbXlfc2VjcmV0X2tleV9mb3JfdGVzdF9lbnZpcm9ubWVudF9tdXN0X2JlX2xvbmdfZW5vdWdo
+                    GEMINI_API_KEY: dummy
                 run: ./gradlew build
