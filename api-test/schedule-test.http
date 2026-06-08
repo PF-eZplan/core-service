@@ -21,7 +21,6 @@ Content-Disposition: form-data; name="text"
 --WebAppBoundary--
 
 
-
 ### 1-B. Gemini AI 일정 파싱 (이미지 1장 + 텍스트)
 POST http://localhost:8080/api/schedules/parse
 Content-Type: multipart/form-data; boundary=WebAppBoundary
@@ -111,8 +110,15 @@ GET http://localhost:8080/api/schedules/daily?date=2026-06-10
 Cookie: access_token={{auth_token}}
 
 
-### 7. 24시간 타임테이블 내보내기 (방학계획표 용도)
+### 7-A. 24시간 타임테이블 내보내기 - 다중 일정 첫째 날 (6월 10일)
+# 기댓값: "멋사 플젝 회의"가 10시~23시 슬롯에 포함되어야 함 (시작일이므로 실제 시작 시간부터)
 GET http://localhost:8080/api/schedules/daily/export?date=2026-06-10
+Cookie: access_token={{auth_token}}
+
+
+### 7-B. 24시간 타임테이블 내보내기 - 다중 일정 마지막 날 (6월 11일)
+# 기댓값: "멋사 플젝 회의"가 0시~18시 슬롯에 포함되어야 함 (종료일이므로 0시부터 실제 종료 시간까지)
+GET http://localhost:8080/api/schedules/daily/export?date=2026-06-11
 Cookie: access_token={{auth_token}}
 
 

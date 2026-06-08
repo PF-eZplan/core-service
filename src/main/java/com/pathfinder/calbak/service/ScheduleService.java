@@ -265,13 +265,32 @@ public class ScheduleService {
         }
 
         for (ScheduleResponse schedule : dailySchedules) {
-            int startHour = (schedule.isAllDay() || schedule.startTime() == null) ? 0
-                : schedule.startTime().getHour();
-            int endHour = (schedule.isAllDay() || schedule.endTime() == null) ? 23
-                : schedule.endTime().getHour();
+            int startHour;
+            int endHour;
 
-            // 자정을 넘기는 일정 처리
-            // 예: 23시 시작 → 1시 종료인 경우 startHour > endHour
+            if (Boolean.TRUE.equals(schedule.isAllDay())) {
+                // 종일 일정: 0시~23시 전체
+                startHour = 0;
+                endHour = 23;
+            } else if (date.equals(schedule.startDate()) && date.equals(schedule.endDate())) {
+                // 단일 일정 (시작일 = 종료일): 실제 시작/종료 시간 그대로 사용
+                startHour = schedule.startTime() == null ? 0 : schedule.startTime().getHour();
+                endHour = schedule.endTime() == null ? 23 : schedule.endTime().getHour();
+            } else if (date.equals(schedule.startDate())) {
+                // 다중 일정의 첫째 날: 실제 시작 시간 ~ 23시
+                startHour = schedule.startTime() == null ? 0 : schedule.startTime().getHour();
+                endHour = 23;
+            } else if (date.equals(schedule.endDate())) {
+                // 다중 일정의 마지막 날: 0시 ~ 실제 종료 시간
+                startHour = 0;
+                endHour = schedule.endTime() == null ? 23 : schedule.endTime().getHour();
+            } else {
+                // 다중 일정의 중간 날: 0시~23시 전체
+                startHour = 0;
+                endHour = 23;
+            }
+
+            // 자정을 넘기는 일정 처리 (예: 23시 시작 → 1시 종료)
             if (startHour <= endHour) {
                 // 일반 케이스: 같은 날 안에 끝나는 일정
                 for (int h = startHour; h <= endHour; h++) {
