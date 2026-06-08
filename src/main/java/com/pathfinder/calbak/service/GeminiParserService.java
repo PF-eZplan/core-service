@@ -53,6 +53,12 @@ public class GeminiParserService {
             여러 이미지가 있다면 모든 이미지의 내용을 종합하여 하나의 일정으로 파싱해.
             단, 콤마 등으로 여러 개의 일정이 나열되어 있다면 반드시 배열 형태로 모두 추출해.
             "이번 주", "다음 주", "오늘", "내일" 같은 상대적 날짜 표현은 오늘 날짜를 기준으로 계산해.
+            
+            [반복 일정 규칙]
+            - "매주 수요일 저녁 7시 동아리"와 같은 반복 일정이 입력되면, '가장 가까운 미래의 수요일'을 계산해서 `startDate`로 설정해.
+            - 반복 일정인 경우 `repeatPattern`을 DAILY, WEEKLY, MONTHLY, YEARLY 중 하나로 설정하고, 아니면 NONE으로 해.
+            - 언제까지 반복할지 모르면 `repeatEndDate`는 반드시 null로 비워둬.
+            
             부가적인 설명 없이 오직 JSON 배열만 반환해.
             - startDate, endDate 형식: YYYY-MM-DD
             - startTime, endTime 형식: HH:mm:ss (시간이 없으면 null)
@@ -69,7 +75,9 @@ public class GeminiParserService {
                 "startTime": "HH:mm:ss",
                 "endDate": "YYYY-MM-DD",
                 "endTime": "HH:mm:ss",
-                "isAllDay": true/false
+                "isAllDay": true/false,
+                "repeatPattern": "NONE/DAILY/WEEKLY/MONTHLY/YEARLY",
+                "repeatEndDate": "YYYY-MM-DD 또는 null"
               }
             ]
             """.formatted(today);
@@ -163,9 +171,11 @@ public class GeminiParserService {
                         parsed.location(),
                         parsed.startDate(),
                         parsed.startTime(),
-                        parsed.startDate(), // endDate fallback
+                        parsed.startDate(), // endDate = startDate
                         parsed.endTime(),
-                        parsed.isAllDay()
+                        parsed.isAllDay(),
+                        parsed.repeatPattern(),
+                        parsed.repeatEndDate()
                     );
                 }
                 fallbackList.add(parsed);

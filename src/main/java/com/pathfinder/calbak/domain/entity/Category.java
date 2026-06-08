@@ -44,4 +44,9 @@ public class Category extends BaseEntity {
 
     @Column(nullable = false)
     private String colorCode; // 헥스코드 (예: #FF5733)
+    
+    public void update(String name, String colorCode) {
+        this.name = name;
+        this.colorCode = colorCode;
+    }
 }

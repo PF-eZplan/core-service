@@ -22,9 +22,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 개인 및 팀의 일정을 저장하는 핵심 엔티티
- */
 @Entity
 @Table(name = "schedules")
 @Getter
@@ -47,9 +44,10 @@ public class Schedule extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
-    private Team team; // 널(null)이면 개인 일정, 값이 있으면 해당 모임에 공유되는 일정
+    private Team team; // null이면 개인 일정, 값이 있으면 해당 모임에 공유되는 일정
 
-    private UUID groupId; // 반복/다중 일정을 하나로 묶어주는 논리적 묶음 ID
+    // 반복/다중 일정을 하나로 묶기 위한 그룹 ID
+    private UUID groupId;
 
     @Enumerated(EnumType.STRING)
     private RepeatPattern repeatPattern; // 반복 종류
@@ -81,4 +79,8 @@ public class Schedule extends BaseEntity {
     private ScheduleStatus status; // 정상, 완료, 삭제 상태
 
     private Integer reminderMinutes; // 15분 전, 30분 전 등 리마인드 여부
+
+    public void updateStatus(ScheduleStatus status) {
+        this.status = status;
+    }
 }

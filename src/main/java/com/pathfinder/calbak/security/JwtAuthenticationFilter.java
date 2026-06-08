@@ -1,5 +1,6 @@
 package com.pathfinder.calbak.security;
 
+import com.pathfinder.calbak.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -8,6 +9,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,6 +23,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -38,13 +42,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (isValid) {
             String email = jwtProvider.getEmailFromToken(token);
 
-            UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                    email,
-                    null,
-                    List.of(new SimpleGrantedAuthority("ROLE_USER"))
-                );
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            // User 전체 엔티티 대신 UUID만 조회하는 경량 프로젝션 사용
+            // -> AuditorAware에서 DB 조회 불필요 (트랜잭션 flush 중 DB 쿼리 문제 방지)
+            Optional<UUID> userIdOptional = userRepository.findIdByEmail(email);
+            if (userIdOptional.isPresent()) {
+                AuthenticatedUser authenticatedUser =
+                    new AuthenticatedUser(userIdOptional.get(), email);
+
+                UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                        authenticatedUser, // Principal: AuthenticatedUser 객체
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                    );
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         }
 
         filterChain.doFilter(request, response);

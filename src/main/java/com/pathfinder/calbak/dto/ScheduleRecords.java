@@ -27,7 +27,9 @@ public class ScheduleRecords {
         LocalTime startTime,
         LocalDate endDate,
         LocalTime endTime,
-        Boolean isAllDay
+        Boolean isAllDay,
+        RepeatPattern repeatPattern, // AI가 인식한 반복 패턴
+        LocalDate repeatEndDate // AI가 인식한 종료일
     ) {
     }
 
@@ -66,9 +68,11 @@ public class ScheduleRecords {
         LocalTime endTime,
         Boolean isAllDay,
         RepeatPattern repeatPattern,
-        ScheduleStatus status
+        LocalDate repeatEndDate,
+        ScheduleStatus status,
+        UUID groupId // 응답 시 그룹 ID 반환
     ) {
-        // 엔티티를 DTO로 변환하는 편의 메서드
+        // 엔티티를 DTO로 변환
         public static ScheduleResponse from(Schedule schedule) {
             return new ScheduleResponse(
                 schedule.getId(),
@@ -86,7 +90,9 @@ public class ScheduleRecords {
                 schedule.getEndTime(),
                 schedule.getIsAllDay(),
                 schedule.getRepeatPattern(),
-                schedule.getStatus()
+                schedule.getRepeatEndDate(),
+                schedule.getStatus(),
+                schedule.getGroupId()
             );
         }
     }
