@@ -23,7 +23,7 @@ jobs:
                     distribution: 'temurin'
 
             -   name: Setup Gradle
-                uses: gradle/actions/setup-gradle@v3
+                uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70
 
             -   name: Grant execute permission for gradlew
                 run: chmod +x gradlew
@@ -73,7 +73,9 @@ jobs:
                         printf "JWT_SECRET=%s\n" "$JWT_SECRET" >> .env
                         printf "GEMINI_API_KEY=%s\n" "$GEMINI_API_KEY" >> .env
                         printf "FRONTEND_URL=%s\n" "$FRONTEND_URL" >> .env
-                        
+
+                        trap 'rm -f ~/calbak/.env' EXIT INT ERR
+
                         chmod 600 .env
                         sudo docker-compose pull
                         sudo docker-compose down
