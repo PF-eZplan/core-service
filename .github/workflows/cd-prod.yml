@@ -21,7 +21,9 @@ jobs:
                 with:
                     java-version: '17'
                     distribution: 'temurin'
-                    cache: 'gradle'
+
+            -   name: Setup Gradle
+                uses: gradle/actions/setup-gradle@v3
 
             -   name: Grant execute permission for gradlew
                 run: chmod +x gradlew
@@ -61,17 +63,16 @@ jobs:
                     envs: DOCKERHUB_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,JWT_SECRET,GEMINI_API_KEY,FRONTEND_URL
                     script: |
                         cd ~/calbak
-                        cat > .env << 'EOF'
-                        DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
-                        DB_URL=$DB_URL
-                        DB_USERNAME=$DB_USERNAME
-                        DB_PASSWORD=$DB_PASSWORD
-                        GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
-                        GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
-                        JWT_SECRET=$JWT_SECRET
-                        GEMINI_API_KEY=$GEMINI_API_KEY
-                        FRONTEND_URL=$FRONTEND_URL
-                        EOF
+                        cat /dev/null > .env
+                        printf "DOCKERHUB_USERNAME=%s\n" "$DOCKERHUB_USERNAME" >> .env
+                        printf "DB_URL=%s\n" "$DB_URL" >> .env
+                        printf "DB_USERNAME=%s\n" "$DB_USERNAME" >> .env
+                        printf "DB_PASSWORD=%s\n" "$DB_PASSWORD" >> .env
+                        printf "GOOGLE_CLIENT_ID=%s\n" "$GOOGLE_CLIENT_ID" >> .env
+                        printf "GOOGLE_CLIENT_SECRET=%s\n" "$GOOGLE_CLIENT_SECRET" >> .env
+                        printf "JWT_SECRET=%s\n" "$JWT_SECRET" >> .env
+                        printf "GEMINI_API_KEY=%s\n" "$GEMINI_API_KEY" >> .env
+                        printf "FRONTEND_URL=%s\n" "$FRONTEND_URL" >> .env
                         
                         chmod 600 .env
                         sudo docker-compose pull
