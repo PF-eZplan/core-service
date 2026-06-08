@@ -43,4 +43,9 @@ jobs:
                 run: chmod +x gradlew
 
             -   name: Build and Test with Gradle
+                env:
+                    GOOGLE_CLIENT_ID: dummy
+                    GOOGLE_CLIENT_SECRET: dummy
+                    JWT_SECRET: ZHVtbXlfc2VjcmV0X2tleV9mb3JfdGVzdF9lbnZpcm9ubWVudF9tdXN0X2JlX2xvbmdfZW5vdWdo
+                    GEMINI_API_KEY: dummy
                 run: ./gradlew build
