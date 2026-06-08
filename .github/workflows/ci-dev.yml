@@ -41,7 +41,6 @@ jobs:
                 with:
                     java-version: '17'
                     distribution: 'temurin'
-                    # 다운로드 타임아웃 방지 및 빌드 속도 최적화
                     cache: 'gradle'
 
             -   name: Grant execute permission for gradlew
