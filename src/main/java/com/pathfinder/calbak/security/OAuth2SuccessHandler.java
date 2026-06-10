@@ -17,9 +17,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtProvider jwtProvider;
 
-    // 깃허브 시크릿 FRONTEND_URL에서 주입받는 딥링크 주소
-    @Value("${app.frontend.url}")
-    private String frontendUrl;
+    // 프론트엔드 URL이 아닌 '리다이렉트 전용 URL' 사용
+    @Value("${app.oauth.redirect-url}")
+    private String redirectUrl;
 
     @Override
     public void onAuthenticationSuccess(
@@ -35,7 +35,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String token = jwtProvider.generateAccessToken(email);
 
         // 앱(Expo) 환경을 위해 쿠키 대신 딥링크 URL 파라미터로 토큰 전달 - 예: exp://192.168.0.5:8081?token=eyJhbGciOi...
-        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl)
+        String targetUrl = UriComponentsBuilder.fromUriString(redirectUrl)
             .queryParam("token", token)
             .build().toUriString();
 
