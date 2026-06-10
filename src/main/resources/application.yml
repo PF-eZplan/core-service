@@ -21,7 +21,8 @@ spring:
 
 jwt:
     secret: ${JWT_SECRET}
-    access-token-expiry: 1800000    # 30분
+    #    access-token-expiry: 1800000    # 30분
+    access-token-expiry: 604800000  # 7일
     refresh-token-expiry: 1209600000 # 14일
 
 gemini:
@@ -31,7 +32,7 @@ gemini:
 
 app:
     frontend:
-        url: ${FRONTEND_URL:https://calbak.o-r.kr}
+        url: ${FRONTEND_URL:http://localhost:3000}
     cookie:
         secure: true
 

@@ -1,8 +1,9 @@
 ### 온보딩 추가 정보 입력 API 테스트
 ### 사전 조건: 구글 로그인 완료 후 access_token 쿠키가 발급된 상태
-PATCH http://localhost:8080/api/users/additional-info
+#PATCH http://localhost:8080/api/users/additional-info
+PATCH https://calbak.o-r.kr/api/users/additional-info
 Content-Type: application/json
-Cookie: access_token=<로그인_후_발급된_JWT_토큰>
+Authorization: Bearer {{auth_token}}
 
 {
     "nickname": "캘박마스터",
