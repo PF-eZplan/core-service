@@ -6,9 +6,11 @@
 # 수정할 본인 소유의 두 번째 카테고리 ID (중복 이름 검증 테스트용)
 @another_category_id = 5f3ca5c1-cf89-4f05-b384-55e03b887c36
 
+@base_url = http://localhost:8080
+# @base_url = https://calbak.o-r.kr
 
 ### 1. 기존 카테고리 수정 (성공)
-PATCH http://localhost:8080/api/categories/{{category_id}}
+PATCH {{base_url}}/api/categories/{{category_id}}
 Content-Type: application/json
 Authorization: Bearer {{auth_token}}
 
@@ -19,7 +21,7 @@ Authorization: Bearer {{auth_token}}
 
 
 ### 2. 똑같은 이름으로 다른 카테고리 수정 시도 (중복 방지 에러 발생해야 함)
-PATCH http://localhost:8080/api/categories/{{another_category_id}}
+PATCH {{base_url}}/api/categories/{{another_category_id}}
 Content-Type: application/json
 Authorization: Bearer {{auth_token}}
 
