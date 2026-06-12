@@ -27,6 +27,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Value("${app.cookie.secure:true}")
     private boolean cookieSecure;
 
+    @Value("${app.cookie.same-site:None}")
+    private String cookieSameSite;
+
     @Override
     public void onAuthenticationSuccess(
         HttpServletRequest request,
@@ -46,7 +49,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             .secure(cookieSecure)
             .path("/")
             .maxAge(accessTokenExpiry / 1000)
-            .sameSite("Lax")
+            .sameSite(cookieSameSite)
             .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
