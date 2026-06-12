@@ -2,7 +2,9 @@ package com.pathfinder.calbak.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
 import com.pathfinder.calbak.domain.entity.Category;
@@ -11,7 +13,9 @@ import com.pathfinder.calbak.domain.entity.User;
 import com.pathfinder.calbak.domain.enums.Enums.RepeatPattern;
 import com.pathfinder.calbak.domain.enums.Enums.ScheduleStatus;
 import com.pathfinder.calbak.dto.ScheduleRecords.CreateRequest;
+import com.pathfinder.calbak.dto.ScheduleRecords.ParsedResponse;
 import com.pathfinder.calbak.dto.ScheduleRecords.ScheduleResponse;
+import com.pathfinder.calbak.dto.ScheduleRecords.UpdateRequest;
 import com.pathfinder.calbak.repository.CategoryRepository;
 import com.pathfinder.calbak.repository.ScheduleRepository;
 import com.pathfinder.calbak.repository.TeamMemberRepository;
@@ -42,6 +46,8 @@ class ScheduleServiceTest {
     private TeamMemberRepository teamMemberRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private GeminiParserService geminiParserService;
 
     @InjectMocks
     private ScheduleService scheduleService;
@@ -155,5 +161,53 @@ class ScheduleServiceTest {
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).title()).isEqualTo("동아리 활동");
+    }
+
+    @Test
+    @DisplayName("일정 단건 수정 시 정상적으로 반영된다")
+    void updateSchedule_Success() {
+        String email = "test@test.com";
+        User user = User.builder().id(UUID.randomUUID()).email(email).build();
+        Category category = Category.builder().id(UUID.randomUUID()).name("기존").colorCode("#000").build();
+        Category newCategory = Category.builder().id(UUID.randomUUID()).name("새카테고리").colorCode("#FFF").build();
+        Schedule schedule = Schedule.builder().id(UUID.randomUUID()).user(user).category(category).build();
+
+        UpdateRequest request = new UpdateRequest(
+            newCategory.getId(), "수정제목", "수정내용", "수정장소",
+            LocalDate.now(), null, LocalDate.now(), null, true, RepeatPattern.NONE, null, 15
+        );
+
+        given(scheduleRepository.findById(schedule.getId())).willReturn(Optional.of(schedule));
+        given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+        given(categoryRepository.findById(request.categoryId())).willReturn(Optional.of(newCategory));
+
+        ScheduleResponse response = scheduleService.updateSchedule(schedule.getId(), email, request);
+
+        assertThat(response.title()).isEqualTo("수정제목");
+        assertThat(response.categoryName()).isEqualTo("새카테고리");
+        assertThat(schedule.getTitle()).isEqualTo("수정제목"); // 엔티티 더티체킹 검증
+    }
+
+    @Test
+    @DisplayName("AI를 이용해 일정을 정상적으로 파싱하고 수정한다")
+    void parseAndUpdateSchedule_Success() {
+        String email = "test@test.com";
+        User user = User.builder().id(UUID.randomUUID()).email(email).build();
+        Category category = Category.builder().id(UUID.randomUUID()).name("기존").colorCode("#000").build();
+        Schedule schedule = Schedule.builder().id(UUID.randomUUID()).user(user).category(category).build();
+
+        ParsedResponse parsedResponse = new ParsedResponse(
+            "AI수정제목", null, null, LocalDate.now(), null, LocalDate.now(), null, true, RepeatPattern.NONE, null
+        );
+
+        given(geminiParserService.parseSchedule(anyString(), any())).willReturn(List.of(parsedResponse));
+        given(scheduleRepository.findById(schedule.getId())).willReturn(Optional.of(schedule));
+        given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+        given(categoryRepository.findById(category.getId())).willReturn(Optional.of(category));
+
+        ScheduleResponse response = scheduleService.parseAndUpdateSchedule(schedule.getId(), email, "AI 수정요청", null);
+
+        assertThat(response.title()).isEqualTo("AI수정제목");
+        assertThat(schedule.getTitle()).isEqualTo("AI수정제목");
     }
 }

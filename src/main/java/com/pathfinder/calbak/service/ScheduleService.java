@@ -9,6 +9,7 @@ import com.pathfinder.calbak.domain.enums.Enums.ScheduleStatus;
 import com.pathfinder.calbak.dto.ScheduleRecords.CreateRequest;
 import com.pathfinder.calbak.dto.ScheduleRecords.ParsedResponse;
 import com.pathfinder.calbak.dto.ScheduleRecords.ScheduleResponse;
+import com.pathfinder.calbak.dto.ScheduleRecords.UpdateRequest;
 import com.pathfinder.calbak.repository.CategoryRepository;
 import com.pathfinder.calbak.repository.ScheduleRepository;
 import com.pathfinder.calbak.repository.TeamMemberRepository;
@@ -40,6 +41,7 @@ public class ScheduleService {
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final GeminiParserService geminiParserService; // AI 수정 기능을 위해 주입 추가
 
     // 일정 생성
     @Transactional
@@ -152,6 +154,72 @@ public class ScheduleService {
         return results;
     }
 
+    // 일반 수동 폼 일정 수정
+    @Transactional
+    public ScheduleResponse updateSchedule(UUID scheduleId, String email, UpdateRequest request) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다."));
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
+
+        if (schedule.getTeam() == null && !schedule.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인의 일정만 수정 가능합니다.");
+        }
+        if (schedule.getTeam() != null && !teamMemberRepository.existsByTeamIdAndUserId(schedule.getTeam().getId(),
+            user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "팀 일정을 수정할 권한이 없습니다.");
+        }
+
+        Category category = categoryRepository.findById(request.categoryId())
+            .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+
+        // 여기서 request는 UpdateRequest 레코드 객체이므로 메서드명 그대로 접근
+        LocalTime effectiveStartTime = request.startTime();
+        LocalTime effectiveEndTime = request.endTime();
+
+        if (Boolean.FALSE.equals(request.isAllDay())) {
+            if (effectiveStartTime == null) {
+                effectiveStartTime = LocalTime.of(0, 0);
+            }
+            if (effectiveEndTime == null) {
+                effectiveEndTime = effectiveStartTime.plusHours(1);
+            }
+        }
+
+        validateScheduleDateTime(request.startDate(), effectiveStartTime, request.endDate(), effectiveEndTime,
+            request.isAllDay());
+
+        schedule.update(category, request.title(), request.content(), request.location(),
+            request.startDate(), effectiveStartTime, request.endDate(), effectiveEndTime,
+            request.isAllDay(), request.repeatPattern(), request.repeatEndDate(), request.reminderMinutes());
+
+        return ScheduleResponse.from(schedule);
+    }
+
+    // AI 이미지/텍스트 기반 단건 자동 수정
+    @Transactional
+    public ScheduleResponse parseAndUpdateSchedule(UUID scheduleId, String email, String text,
+                                                   org.springframework.web.multipart.MultipartFile image) {
+        List<org.springframework.web.multipart.MultipartFile> images = image != null ? List.of(image) : null;
+        List<ParsedResponse> parsedList = geminiParserService.parseSchedule(text, images);
+
+        if (parsedList.isEmpty()) {
+            throw new IllegalArgumentException("분석된 일정이 없습니다.");
+        }
+        ParsedResponse parsed = parsedList.get(0);
+
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다."));
+
+        UpdateRequest updateReq = new UpdateRequest(
+            schedule.getCategory().getId(), parsed.title(), parsed.content(), parsed.location(),
+            parsed.startDate(), parsed.startTime(), parsed.endDate(), parsed.endTime(),
+            parsed.isAllDay(), parsed.repeatPattern(), parsed.repeatEndDate(), schedule.getReminderMinutes()
+        );
+
+        return updateSchedule(scheduleId, email, updateReq);
+    }
+
     // 보정된 시간을 받도록 파라미터 추가
     private Schedule buildSchedule(User user, Category category, Team team, UUID groupId,
                                    LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime,
@@ -248,8 +316,14 @@ public class ScheduleService {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        // ACTIVE와 COMPLETED 상태 모두 넘겨주어 조회
         return scheduleRepository
-            .findSchedulesWithinDateRange(user.getId(), date, date, ScheduleStatus.ACTIVE)
+            .findSchedulesWithinDateRange(
+                user.getId(),
+                date,
+                date,
+                List.of(ScheduleStatus.ACTIVE, ScheduleStatus.COMPLETED)
+            )
             .stream()
             .map(ScheduleResponse::from)
             .collect(Collectors.toList());
@@ -319,8 +393,14 @@ public class ScheduleService {
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
 
+        // ACTIVE와 COMPLETED 상태 모두 넘겨주어 조회
         return scheduleRepository
-            .findSchedulesWithinDateRange(user.getId(), startDate, endDate, ScheduleStatus.ACTIVE)
+            .findSchedulesWithinDateRange(
+                user.getId(),
+                startDate,
+                endDate,
+                List.of(ScheduleStatus.ACTIVE, ScheduleStatus.COMPLETED)
+            )
             .stream()
             .map(ScheduleResponse::from)
             .collect(Collectors.toList());

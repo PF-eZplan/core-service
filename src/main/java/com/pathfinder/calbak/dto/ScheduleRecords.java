@@ -33,10 +33,27 @@ public class ScheduleRecords {
     ) {
     }
 
-    // 3. 일정 생성/수정 요청 DTO
+    // 3. 일정 생성 요청 DTO
     public record CreateRequest(
         @NotNull(message = "카테고리 ID는 필수입니다.") UUID categoryId,
         UUID teamId,
+        @NotBlank(message = "일정 제목은 필수입니다.") String title,
+        String content,
+        String location,
+        @NotNull(message = "시작 날짜는 필수입니다.") LocalDate startDate,
+        LocalTime startTime,
+        @NotNull(message = "종료 날짜는 필수입니다.") LocalDate endDate,
+        LocalTime endTime,
+        @NotNull(message = "종일 여부는 필수입니다.") Boolean isAllDay,
+        RepeatPattern repeatPattern,
+        LocalDate repeatEndDate,
+        Integer reminderMinutes
+    ) {
+    }
+
+    // 3-2. 일정 수정 요청 DTO
+    public record UpdateRequest(
+        @NotNull(message = "카테고리 ID는 필수입니다.") UUID categoryId,
         @NotBlank(message = "일정 제목은 필수입니다.") String title,
         String content,
         String location,

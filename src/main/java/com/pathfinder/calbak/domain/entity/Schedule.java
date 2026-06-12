@@ -83,4 +83,22 @@ public class Schedule extends BaseEntity {
     public void updateStatus(ScheduleStatus status) {
         this.status = status;
     }
+
+    public void update(Category category, String title, String content, String location,
+                       LocalDate startDate, LocalTime startTime, LocalDate endDate, LocalTime endTime,
+                       Boolean isAllDay, RepeatPattern repeatPattern, LocalDate repeatEndDate,
+                       Integer reminderMinutes) {
+        this.category = category;
+        this.title = title;
+        this.content = content;
+        this.location = location;
+        this.startDate = startDate;
+        this.startTime = startTime;
+        this.endDate = endDate;
+        this.endTime = endTime;
+        this.isAllDay = isAllDay;
+        this.repeatPattern = repeatPattern;
+        this.repeatEndDate = repeatEndDate;
+        this.reminderMinutes = reminderMinutes;
+    }
 }

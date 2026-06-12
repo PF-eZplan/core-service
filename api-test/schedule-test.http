@@ -8,7 +8,7 @@
 @csrf_token = <브라우저 쿠키에서 복사한 XSRF-TOKEN 값>
 
 # 일정을 저장할 카테고리의 UUID (DB에서 확인)
-@category_id = 3ea658f9-b600-4a7b-b8bd-7e5c8722ed33
+@category_id = 7ed7c63a-59f0-421f-8af9-d96141db0fc9
 
 @base_url = http://localhost:8080
 # @base_url = https://calbak.o-r.kr
@@ -80,7 +80,9 @@ Content-Disposition: form-data; name="text"
 이번 주 화요일부터 매주 화요일 오전 10시부터 오전 11시까지 국제도서전 얼리버드 티켓팅. 6월 22일까지.
 --WebAppBoundary--
 
-# 이번 주 금요일 오후 11시부터 11시 반까지 상도역 회의
+> {%
+    client.global.set("schedule_id", response.body[0].id);
+%}
 
 ### 3. 일정 최종 생성
 POST {{base_url}}/api/schedules
@@ -141,3 +143,36 @@ X-XSRF-TOKEN: {{csrf_token}}
 GET {{base_url}}/api/schedules/monthly?year=2026&month=6
 Cookie: access_token={{auth_token}}; XSRF-TOKEN={{csrf_token}}
 X-XSRF-TOKEN: {{csrf_token}}
+
+### 9. 일정 단건 일반 수정
+PATCH {{base_url}}/api/schedules/{{schedule_id}}
+Content-Type: application/json
+Cookie: access_token={{auth_token}}; XSRF-TOKEN={{csrf_token}}
+X-XSRF-TOKEN: {{csrf_token}}
+
+{
+  "categoryId": "{{category_id}}",
+  "title": "회크닉 (수정됨)",
+  "content": "러닝하고 회먹기",
+  "location": "여의도",
+  "startDate": "2026-06-13",
+  "startTime": "17:00:00",
+  "endDate": "2026-06-13",
+  "endTime": "21:00:00",
+  "isAllDay": false,
+  "repeatPattern": "NONE",
+  "reminderMinutes": 15
+}
+
+
+### 10. AI 기반 일정 자동 수정 - 기존 설명 다 포함해야함. 이전내용 기억 못 함
+PATCH {{base_url}}/api/schedules/{{schedule_id}}/parse-and-update
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+Cookie: access_token={{auth_token}}; XSRF-TOKEN={{csrf_token}}
+X-XSRF-TOKEN: {{csrf_token}}
+
+--WebAppBoundary
+Content-Disposition: form-data; name="text"
+
+MVP 회의가 있는데 시간이 오늘 오후 4시부터 10시까지로 미뤄졌어. 장소는 여의도야.
+--WebAppBoundary--
