@@ -59,6 +59,10 @@ public class GeminiParserService {
             - 반복 일정인 경우 `repeatPattern`을 DAILY, WEEKLY, MONTHLY, YEARLY 중 하나로 설정하고, 아니면 NONE으로 해.
             - 언제까지 반복할지 모르면 `repeatEndDate`는 반드시 null로 비워둬.
             
+            [기간 일정 특별 규칙]
+            - "6/15~6/20 신청기간", "접수기간", "응시기간" 등 마감일이 중요한 이벤트는 기간 전체가 아닌, 반드시 '마지막 날(종료일)'을 startDate와 endDate로 하는 하루짜리 단일 일정으로 추출해 (예: startDate="2026-06-20", endDate="2026-06-20").
+            - 단, "6/25~6/27 여행", "휴가", "출장", "방학" 등 실제로 해당 기간 내내 진행되는 이벤트는 기존처럼 startDate와 endDate를 각각 시작일과 종료일로 하는 기간 일정으로 추출해.
+            
             부가적인 설명 없이 오직 JSON 배열만 반환해.
             - startDate, endDate 형식: YYYY-MM-DD
             - startTime, endTime 형식: HH:mm:ss (시간이 없으면 null)
