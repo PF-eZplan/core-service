@@ -11,6 +11,7 @@ import com.pathfinder.calbak.domain.entity.User;
 import com.pathfinder.calbak.domain.enums.Enums;
 import com.pathfinder.calbak.domain.enums.Enums.NotificationStatus;
 import com.pathfinder.calbak.dto.UserAdditionalInfoRequest;
+import com.pathfinder.calbak.dto.UserNicknameUpdateRequest;
 import com.pathfinder.calbak.repository.UserRepository;
 import com.pathfinder.calbak.security.JwtProvider;
 import com.pathfinder.calbak.service.UserService;
@@ -79,5 +80,31 @@ class UserControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
             .andExpect(content().string("추가 정보 등록이 완료되었습니다."));
+    }
+
+    @Test
+    @WithMockUser(username = "test@google.com")
+    @DisplayName("유효한 닉네임 변경 정보가 들어오면 200 OK와 성공 메시지를 반환한다.")
+    void updateNickname_Success() throws Exception {
+        // given: 들어올 요청 데이터 세팅
+        UserNicknameUpdateRequest request = new UserNicknameUpdateRequest("슈퍼개발자");
+        
+        User mockUser = User.builder()
+            .email("test@google.com")
+            .nickname("기존닉네임")
+            .build();
+
+        given(userRepository.findByEmail("test@google.com"))
+            .willReturn(Optional.of(mockUser));
+        given(userRepository.existsByNickname(request.nickname()))
+            .willReturn(false);
+
+        // when & then: API 찌르고 결과 확인
+        mockMvc.perform(patch("/api/users/nickname")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(content().string("닉네임이 성공적으로 변경되었습니다."));
     }
 }

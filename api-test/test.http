@@ -16,7 +16,7 @@ Cookie: access_token={{auth_token}}; XSRF-TOKEN={{csrf_token}}
 X-XSRF-TOKEN: {{csrf_token}}
 
 {
-    "nickname": "캘박마스터25",
+    "nickname": "캘박마스터",
     "gender": "MALE",
     "ageGroup": "AGE_20S",
     "job": "대학생,개발자",
@@ -24,4 +24,25 @@ X-XSRF-TOKEN: {{csrf_token}}
     "sleepTime": "23:00:00",
     "wakeUpTime": "07:30:00",
     "notificationStatus": "NO"
+}
+
+
+### 닉네임 단건 수정 API 테스트 (성공)
+PATCH {{base_url}}/api/users/nickname
+Content-Type: application/json
+Cookie: access_token={{auth_token}}; XSRF-TOKEN={{csrf_token}}
+X-XSRF-TOKEN: {{csrf_token}}
+
+{
+    "nickname": "슈퍼개발자"
+}
+
+### 닉네임 단건 수정 API 테스트 (중복 닉네임 실패 검증용)
+PATCH {{base_url}}/api/users/nickname
+Content-Type: application/json
+Cookie: access_token={{auth_token}}; XSRF-TOKEN={{csrf_token}}
+X-XSRF-TOKEN: {{csrf_token}}
+
+{
+    "nickname": "캘박마스터25"
 }

@@ -2,6 +2,7 @@ package com.pathfinder.calbak.service;
 
 import com.pathfinder.calbak.domain.entity.User;
 import com.pathfinder.calbak.dto.UserAdditionalInfoRequest;
+import com.pathfinder.calbak.dto.UserNicknameUpdateRequest;
 import com.pathfinder.calbak.exception.DuplicateNicknameException;
 import com.pathfinder.calbak.exception.UserNotFoundException;
 import com.pathfinder.calbak.repository.UserRepository;
@@ -43,5 +44,28 @@ public class UserService {
             request.wakeUpTime(),
             request.notificationStatus()
         );
+    }
+
+    @Transactional
+    public void updateNickname(UserNicknameUpdateRequest request) {
+        // 1. 현재 접속 중인 유저 조회
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(UserNotFoundException::new);
+
+        String newNickname = request.nickname();
+
+        // 2. 현재 닉네임과 동일하게 변경하려고 하면 아무 작업 없이 리턴 (DB 쿼리 절약)
+        if (newNickname.equals(user.getNickname())) {
+            return;
+        }
+
+        // 3. 중복 검사 (새로운 닉네임이 이미 존재하는지)
+        if (userRepository.existsByNickname(newNickname)) {
+            throw new DuplicateNicknameException();
+        }
+
+        // 4. 닉네임 업데이트 (Dirty Checking으로 인해 자동 UPDATE 쿼리 발생)
+        user.updateNickname(newNickname);
     }
 }
