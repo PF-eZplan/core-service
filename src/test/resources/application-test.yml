@@ -33,8 +33,6 @@ jwt:
 app:
     frontend:
         url: http://localhost:3000
-    cookie:
-        secure: false
 
 gemini:
     api:

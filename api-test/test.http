@@ -1,19 +1,27 @@
+# 인텔리제이의 자동 쿠키 섞임 방지
+@no-cookie-jar
+
 @base_url = http://localhost:8080
 # @base_url = https://calbak.o-r.kr
+
+@auth_token = <SET_ME_AT_RUNTIME_tenten>
+
+@csrf_token = <브라우저 쿠키에서 복사한 XSRF-TOKEN 값>
 
 ### 온보딩 추가 정보 입력 API 테스트
 ### 사전 조건: 구글 로그인 완료 후 access_token 쿠키가 발급된 상태
 PATCH {{base_url}}/api/users/additional-info
 Content-Type: application/json
-Authorization: Bearer {{auth_token}}
+Cookie: access_token={{auth_token}}; XSRF-TOKEN={{csrf_token}}
+X-XSRF-TOKEN: {{csrf_token}}
 
 {
-    "nickname": "캘박마스터",
+    "nickname": "캘박마스터25",
     "gender": "MALE",
     "ageGroup": "AGE_20S",
     "job": "대학생,개발자",
     "usagePurpose": "수업 관리,일정 알림",
     "sleepTime": "23:00:00",
     "wakeUpTime": "07:30:00",
-    "notificationSetting": "MIN_30"
+    "notificationStatus": "NO"
 }
