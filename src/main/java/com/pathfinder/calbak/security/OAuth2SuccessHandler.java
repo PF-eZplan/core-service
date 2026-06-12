@@ -24,7 +24,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Value("${jwt.access-token-expiry}")
     private long accessTokenExpiry;
 
-    @Value("${app.cookie.secure:false}")
+    @Value("${app.cookie.secure:true}")
     private boolean cookieSecure;
 
     @Override
