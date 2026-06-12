@@ -86,4 +86,9 @@ public class User extends BaseEntity {
         this.wakeUpTime = wakeUpTime;
         this.notificationStatus = notificationStatus;
     }
+
+    // 닉네임 단건 수정 메서드
+    public void updateNickname(String newNickname) {
+        this.nickname = newNickname;
+    }
 }

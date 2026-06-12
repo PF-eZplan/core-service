@@ -2,10 +2,12 @@ package com.pathfinder.calbak.service;
 
 import com.pathfinder.calbak.domain.entity.User;
 import com.pathfinder.calbak.dto.UserAdditionalInfoRequest;
+import com.pathfinder.calbak.dto.UserNicknameUpdateRequest;
 import com.pathfinder.calbak.exception.DuplicateNicknameException;
 import com.pathfinder.calbak.exception.UserNotFoundException;
 import com.pathfinder.calbak.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,5 +45,53 @@ public class UserService {
             request.wakeUpTime(),
             request.notificationStatus()
         );
+
+        // 동시에 같은 닉네임으로 저장될 때 발생하는 DB Unique 제약 에러 방어
+        flushAndCatchDuplicate();
+    }
+
+    @Transactional
+    public void updateNickname(UserNicknameUpdateRequest request) {
+        // 1. 현재 접속 중인 유저 조회
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(UserNotFoundException::new);
+
+        String newNickname = request.nickname();
+
+        // 2. 현재 닉네임과 동일하게 변경하려고 하면 아무 작업 없이 리턴 (DB 쿼리 절약)
+        if (newNickname.equals(user.getNickname())) {
+            return;
+        }
+
+        // 3. 중복 검사 (새로운 닉네임이 이미 존재하는지)
+        if (userRepository.existsByNickname(newNickname)) {
+            throw new DuplicateNicknameException();
+        }
+
+        // 4. 닉네임 업데이트 (Dirty Checking으로 인해 자동 UPDATE 쿼리 발생)
+        user.updateNickname(newNickname);
+
+        // 동시에 같은 닉네임으로 저장될 때 발생하는 DB Unique 제약 에러 방어
+        flushAndCatchDuplicate();
+    }
+
+    // 중복되는 DB Unique 제약 예외 처리 로직 공통화
+    // 'nickname' 관련 에러인지 메시지를 파싱하여 검사
+    private void flushAndCatchDuplicate() {
+        try {
+            userRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            String message = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            Throwable rootCause = e.getRootCause();
+            String rootMessage = (rootCause != null && rootCause.getMessage() != null)
+                ? rootCause.getMessage().toLowerCase() : "";
+
+            if (message.contains("nickname") || rootMessage.contains("nickname")) {
+                throw new DuplicateNicknameException();
+            }
+
+            throw e; // 닉네임 에러가 아니면 원래 에러를 그대로 던짐
+        }
     }
 }
