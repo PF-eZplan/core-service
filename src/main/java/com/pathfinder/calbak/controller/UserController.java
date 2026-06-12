@@ -1,6 +1,7 @@
 package com.pathfinder.calbak.controller;
 
 import com.pathfinder.calbak.dto.UserAdditionalInfoRequest;
+import com.pathfinder.calbak.dto.UserNicknameUpdateRequest;
 import com.pathfinder.calbak.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,5 +25,14 @@ public class UserController {
     ) {
         userService.updateAdditionalInfo(request);
         return ResponseEntity.ok("추가 정보 등록이 완료되었습니다.");
+    }
+
+    // 닉네임 단건 수정 API
+    @PatchMapping("/nickname")
+    public ResponseEntity<String> updateNickname(
+        @Valid @RequestBody UserNicknameUpdateRequest request
+    ) {
+        userService.updateNickname(request);
+        return ResponseEntity.ok("닉네임이 성공적으로 변경되었습니다.");
     }
 }
