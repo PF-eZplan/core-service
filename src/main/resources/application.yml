@@ -34,7 +34,7 @@ app:
         url: ${FRONTEND_URL:http://localhost:3000}
     cookie:
         secure: true
-    same-site: None
+        same-site: None
 
 server:
     forward-headers-strategy: framework
