@@ -47,11 +47,7 @@ public class UserService {
         );
 
         // 동시에 같은 닉네임으로 저장될 때 발생하는 DB Unique 제약 에러 방어
-        try {
-            userRepository.flush();
-        } catch (DataIntegrityViolationException e) {
-            throw new DuplicateNicknameException();
-        }
+        flushAndCatchDuplicate();
     }
 
     @Transactional
@@ -77,6 +73,11 @@ public class UserService {
         user.updateNickname(newNickname);
 
         // 동시에 같은 닉네임으로 저장될 때 발생하는 DB Unique 제약 에러 방어
+        flushAndCatchDuplicate();
+    }
+
+    // 중복되는 DB Unique 제약 예외 처리 로직 공통화
+    private void flushAndCatchDuplicate() {
         try {
             userRepository.flush();
         } catch (DataIntegrityViolationException e) {

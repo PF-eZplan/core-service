@@ -113,7 +113,7 @@ class UserControllerTest {
     // 중복 닉네임 요청 시 커스텀 예외(DuplicateNicknameException)가 발생하는지 검증
     @Test
     @WithMockUser(username = "test@google.com")
-    @DisplayName("이미 존재하는 닉네임으로 변경 시 DuplicateNicknameException 예외가 발생한다.")
+    @DisplayName("이미 존재하는 닉네임으로 변경 시 409 Conflict와 DuplicateNicknameException 예외가 발생한다.")
     void updateNickname_DuplicateNickname() throws Exception {
         UserNicknameUpdateRequest request = new UserNicknameUpdateRequest("중복닉네임");
         User mockUser = User.builder().email("test@google.com").nickname("기존닉네임").build();
@@ -125,6 +125,7 @@ class UserControllerTest {
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isConflict()) // 409 Conflict 상태 코드 검증
             .andExpect(
                 result -> assertThat(result.getResolvedException()).isInstanceOf(DuplicateNicknameException.class));
     }
