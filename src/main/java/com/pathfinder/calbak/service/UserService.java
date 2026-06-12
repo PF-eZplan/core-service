@@ -41,7 +41,7 @@ public class UserService {
             request.usagePurpose(),
             request.sleepTime(),
             request.wakeUpTime(),
-            request.notificationSetting()
+            request.notificationStatus()
         );
     }
 }

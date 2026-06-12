@@ -13,6 +13,6 @@ public record UserAdditionalInfoRequest(
     String usagePurpose,
     LocalTime sleepTime,
     LocalTime wakeUpTime,
-    @NotNull Enums.NotificationSetting notificationSetting
+    @NotNull Enums.NotificationStatus notificationStatus
 ) {
 }

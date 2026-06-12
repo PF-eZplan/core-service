@@ -15,5 +15,5 @@ Authorization: Bearer {{auth_token}}
     "usagePurpose": "수업 관리,일정 알림",
     "sleepTime": "23:00:00",
     "wakeUpTime": "07:30:00",
-    "notificationSetting": "MIN_30"
+    "notificationStatus": "NO"
 }

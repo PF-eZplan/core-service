@@ -2,7 +2,7 @@ package com.pathfinder.calbak.domain.entity;
 
 import com.pathfinder.calbak.domain.enums.Enums.AgeGroup;
 import com.pathfinder.calbak.domain.enums.Enums.Gender;
-import com.pathfinder.calbak.domain.enums.Enums.NotificationSetting;
+import com.pathfinder.calbak.domain.enums.Enums.NotificationStatus;
 import com.pathfinder.calbak.domain.enums.Enums.Provider;
 import com.pathfinder.calbak.domain.enums.Enums.SystemRole;
 import com.pathfinder.calbak.domain.enums.Enums.UserStatus;
@@ -62,7 +62,7 @@ public class User extends BaseEntity {
     private LocalTime wakeUpTime; // 기상 시간
 
     @Enumerated(EnumType.STRING)
-    private NotificationSetting notificationSetting; // 알림 설정 (Enum)
+    private NotificationStatus notificationStatus; // 알림 설정 (Enum)
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -76,7 +76,7 @@ public class User extends BaseEntity {
     public void completeOnboarding(String nickname, Gender gender, AgeGroup ageGroup,
                                    String job, String usagePurpose,
                                    LocalTime sleepTime, LocalTime wakeUpTime,
-                                   NotificationSetting notificationSetting) {
+                                   NotificationStatus notificationStatus) {
         this.nickname = nickname;
         this.gender = gender;
         this.ageGroup = ageGroup;
@@ -84,6 +84,6 @@ public class User extends BaseEntity {
         this.usagePurpose = usagePurpose;
         this.sleepTime = sleepTime;
         this.wakeUpTime = wakeUpTime;
-        this.notificationSetting = notificationSetting;
+        this.notificationStatus = notificationStatus;
     }
 }

@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pathfinder.calbak.domain.entity.User;
 import com.pathfinder.calbak.domain.enums.Enums;
+import com.pathfinder.calbak.domain.enums.Enums.NotificationStatus;
 import com.pathfinder.calbak.dto.UserAdditionalInfoRequest;
 import com.pathfinder.calbak.repository.UserRepository;
 import com.pathfinder.calbak.security.JwtProvider;
@@ -56,7 +57,7 @@ class UserControllerTest {
             "수업 관리",
             LocalTime.of(23, 30),
             LocalTime.of(7, 0),
-            Enums.NotificationSetting.MIN_30
+            NotificationStatus.NO
         );
 
         // given: 가짜 유저 객체 세팅
