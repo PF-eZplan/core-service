@@ -45,4 +45,9 @@ public class Enums {
     public enum NotificationSetting {
         MIN_10, MIN_30, HOUR_1, NONE
     }
+
+    // 알림 수신 여부
+    public enum NotificationStatus {
+        YES, NO
+    }
 }

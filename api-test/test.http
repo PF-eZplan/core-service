@@ -5,7 +5,7 @@
 ### 사전 조건: 구글 로그인 완료 후 access_token 쿠키가 발급된 상태
 PATCH {{base_url}}/api/users/additional-info
 Content-Type: application/json
-Authorization: Bearer {{auth_token}}
+Cookie: access_token={{auth_token}}
 
 {
     "nickname": "캘박마스터",
@@ -15,5 +15,5 @@ Authorization: Bearer {{auth_token}}
     "usagePurpose": "수업 관리,일정 알림",
     "sleepTime": "23:00:00",
     "wakeUpTime": "07:30:00",
-    "notificationSetting": "MIN_30"
+    "notificationStatus": "NO"
 }

@@ -12,7 +12,7 @@
 ### 1. 기존 카테고리 수정 (성공)
 PATCH {{base_url}}/api/categories/{{category_id}}
 Content-Type: application/json
-Authorization: Bearer {{auth_token}}
+Cookie: access_token={{auth_token}}
 
 {
     "name": "동아리",
@@ -23,7 +23,7 @@ Authorization: Bearer {{auth_token}}
 ### 2. 똑같은 이름으로 다른 카테고리 수정 시도 (중복 방지 에러 발생해야 함)
 PATCH {{base_url}}/api/categories/{{another_category_id}}
 Content-Type: application/json
-Authorization: Bearer {{auth_token}}
+Cookie: access_token={{auth_token}}
 
 {
     "name": "동아리",

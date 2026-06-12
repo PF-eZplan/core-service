@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 
 import com.pathfinder.calbak.domain.entity.User;
 import com.pathfinder.calbak.domain.enums.Enums;
+import com.pathfinder.calbak.domain.enums.Enums.NotificationStatus;
 import com.pathfinder.calbak.dto.UserAdditionalInfoRequest;
 import com.pathfinder.calbak.exception.DuplicateNicknameException;
 import com.pathfinder.calbak.exception.UserNotFoundException;
@@ -56,7 +57,7 @@ class UserServiceTest {
         User user = User.builder().email("test@test.com").nickname("기존유저").build();
         UserAdditionalInfoRequest request = new UserAdditionalInfoRequest(
             "중복닉네임", Enums.Gender.MALE, Enums.AgeGroup.AGE_20S,
-            null, null, null, null, Enums.NotificationSetting.NONE
+            null, null, null, null, NotificationStatus.NO
         );
 
         given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
@@ -81,7 +82,7 @@ class UserServiceTest {
             null,
             null,
             null,
-            Enums.NotificationSetting.NONE
+            NotificationStatus.NO
         );
 
         given(userRepository.findByEmail("test@test.com"))
@@ -111,7 +112,7 @@ class UserServiceTest {
                 "수업관리",
                 null,
                 null,
-                Enums.NotificationSetting.MIN_30
+                NotificationStatus.NO
             );
 
         given(userRepository.findByEmail("test@test.com"))
@@ -127,7 +128,7 @@ class UserServiceTest {
         assertThat(user.getAgeGroup()).isEqualTo(Enums.AgeGroup.AGE_20S);
         assertThat(user.getJob()).isEqualTo("대학생");
         assertThat(user.getUsagePurpose()).isEqualTo("수업관리");
-        assertThat(user.getNotificationSetting()).isEqualTo(Enums.NotificationSetting.MIN_30);
+        assertThat(user.getNotificationStatus()).isEqualTo(NotificationStatus.NO);
 
         verify(userRepository)
             .findByEmail("test@test.com");
@@ -154,7 +155,7 @@ class UserServiceTest {
                 null,
                 null,
                 null,
-                Enums.NotificationSetting.NONE
+                NotificationStatus.NO
             );
 
         given(userRepository.findByEmail("test@test.com"))
