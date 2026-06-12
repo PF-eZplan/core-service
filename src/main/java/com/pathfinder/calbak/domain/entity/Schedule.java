@@ -88,6 +88,11 @@ public class Schedule extends BaseEntity {
                        LocalDate startDate, LocalTime startTime, LocalDate endDate, LocalTime endTime,
                        Boolean isAllDay, RepeatPattern repeatPattern, LocalDate repeatEndDate,
                        Integer reminderMinutes) {
+
+        // 엔티티 업데이트 전 최소한의 불변 객체/정합성 검증 수행
+        validateUpdateArguments(category, title, startDate, endDate, startTime, endTime, isAllDay, repeatPattern,
+            repeatEndDate);
+
         this.category = category;
         this.title = title;
         this.content = content;
@@ -100,5 +105,28 @@ public class Schedule extends BaseEntity {
         this.repeatPattern = repeatPattern;
         this.repeatEndDate = repeatEndDate;
         this.reminderMinutes = reminderMinutes;
+    }
+
+    // 검증 로직 분리
+    private void validateUpdateArguments(Category category, String title, LocalDate startDate, LocalDate endDate,
+                                         LocalTime startTime, LocalTime endTime, Boolean isAllDay,
+                                         RepeatPattern repeatPattern, LocalDate repeatEndDate) {
+        if (category == null) {
+            throw new IllegalArgumentException("카테고리는 null일 수 없습니다.");
+        }
+        if (title == null || title.trim().isEmpty()) {
+            throw new IllegalArgumentException("일정 제목은 비어있을 수 없습니다.");
+        }
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("종료 날짜는 시작 날짜보다 빠를 수 없습니다.");
+        }
+        if (Boolean.FALSE.equals(isAllDay) && endDate.isEqual(startDate) && startTime != null && endTime != null
+            && endTime.isBefore(startTime)) {
+            throw new IllegalArgumentException("종료 시간은 시작 시간보다 빠를 수 없습니다.");
+        }
+        if (repeatPattern != null && repeatPattern != RepeatPattern.NONE && repeatEndDate != null
+            && repeatEndDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("반복 종료일은 시작 날짜보다 빠를 수 없습니다.");
+        }
     }
 }

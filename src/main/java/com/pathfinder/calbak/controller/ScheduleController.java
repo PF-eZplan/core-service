@@ -120,19 +120,29 @@ public class ScheduleController {
     }
 
     // AI 이미지/텍스트 기반 자동 수정 API
+    // parse-and-create와 동일하게 List<MultipartFile> images
     @PatchMapping(value = "/{id}/parse-and-update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ScheduleResponse> parseAndUpdateSchedule(
         Authentication authentication,
         @PathVariable UUID id,
         @RequestParam(required = false) String text,
-        @RequestPart(required = false) MultipartFile image) {
+        @RequestPart(required = false) List<MultipartFile> images) {
 
         String email = authentication.getName();
-        if ((text == null || text.isBlank()) && (image == null || image.isEmpty())) {
+
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile file : images) {
+                if (file == null || file.isEmpty()) {
+                    throw new IllegalArgumentException("빈 이미지 파일은 허용되지 않습니다.");
+                }
+            }
+        }
+
+        if ((text == null || text.isBlank()) && (images == null || images.isEmpty())) {
             throw new IllegalArgumentException("수정할 텍스트나 이미지를 입력해주세요.");
         }
 
-        ScheduleResponse response = scheduleService.parseAndUpdateSchedule(id, email, text, image);
+        ScheduleResponse response = scheduleService.parseAndUpdateSchedule(id, email, text, images);
         return ResponseEntity.ok(response);
     }
 

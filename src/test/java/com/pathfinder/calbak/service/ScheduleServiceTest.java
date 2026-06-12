@@ -32,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleServiceTest {
@@ -185,7 +186,31 @@ class ScheduleServiceTest {
 
         assertThat(response.title()).isEqualTo("수정제목");
         assertThat(response.categoryName()).isEqualTo("새카테고리");
-        assertThat(schedule.getTitle()).isEqualTo("수정제목"); // 엔티티 더티체킹 검증
+        assertThat(schedule.getTitle()).isEqualTo("수정제목");
+    }
+
+    // 일정 엔티티 내부 검증(update) 시 예외 처리 테스트
+    @Test
+    @DisplayName("일정 단건 수정 시 필수 값이 누락되거나 정합성이 안 맞으면 예외가 발생한다")
+    void updateSchedule_Fail_Validation() {
+        String email = "test@test.com";
+        User user = User.builder().id(UUID.randomUUID()).email(email).build();
+        Category category = Category.builder().id(UUID.randomUUID()).name("기존").colorCode("#000").build();
+        Schedule schedule = Schedule.builder().id(UUID.randomUUID()).user(user).category(category).build();
+
+        // 비정상 데이터: 제목이 비어있음 (" ")
+        UpdateRequest request = new UpdateRequest(
+            category.getId(), "   ", null, null,
+            LocalDate.now(), null, LocalDate.now(), null, true, RepeatPattern.NONE, null, 15
+        );
+
+        given(scheduleRepository.findById(schedule.getId())).willReturn(Optional.of(schedule));
+        given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+        given(categoryRepository.findById(request.categoryId())).willReturn(Optional.of(category));
+
+        assertThatThrownBy(() -> scheduleService.updateSchedule(schedule.getId(), email, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("일정 제목은 비어있을 수 없습니다.");
     }
 
     @Test
@@ -205,9 +230,32 @@ class ScheduleServiceTest {
         given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
         given(categoryRepository.findById(category.getId())).willReturn(Optional.of(category));
 
-        ScheduleResponse response = scheduleService.parseAndUpdateSchedule(schedule.getId(), email, "AI 수정요청", null);
+        // 파라미터가 List<MultipartFile> 타입으로 변경된 것 반영 (null 강제 형변환)
+        ScheduleResponse response = scheduleService.parseAndUpdateSchedule(schedule.getId(), email, "AI 수정요청",
+            (List<MultipartFile>) null);
 
         assertThat(response.title()).isEqualTo("AI수정제목");
         assertThat(schedule.getTitle()).isEqualTo("AI수정제목");
+    }
+
+    // AI 다중 파싱 방어 로직(Fail-fast) 테스트
+    @Test
+    @DisplayName("AI 수정 시 파싱 결과가 2개 이상이면 예외가 발생한다 (다중 일정 수정 방지)")
+    void parseAndUpdateSchedule_Fail_MultipleResults() {
+        String email = "test@test.com";
+        UUID scheduleId = UUID.randomUUID();
+
+        // 2개의 파싱 결과를 반환하도록 Mock 설정
+        ParsedResponse parsed1 = new ParsedResponse("첫번째", null, null, LocalDate.now(), null, LocalDate.now(), null,
+            true, RepeatPattern.NONE, null);
+        ParsedResponse parsed2 = new ParsedResponse("두번째", null, null, LocalDate.now(), null, LocalDate.now(), null,
+            true, RepeatPattern.NONE, null);
+
+        given(geminiParserService.parseSchedule(anyString(), any())).willReturn(List.of(parsed1, parsed2));
+
+        assertThatThrownBy(
+            () -> scheduleService.parseAndUpdateSchedule(scheduleId, email, "AI 수정요청", (List<MultipartFile>) null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("여러 일정이 감지되었습니다. 하나의 일정만 입력하세요.");
     }
 }

@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -197,15 +198,19 @@ public class ScheduleService {
     }
 
     // AI 이미지/텍스트 기반 단건 자동 수정
+    // 다중 이미지 리스트 수용 및 다중 일정 반환 시 빠른 예외 처리(Fail Fast)
     @Transactional
     public ScheduleResponse parseAndUpdateSchedule(UUID scheduleId, String email, String text,
-                                                   org.springframework.web.multipart.MultipartFile image) {
-        List<org.springframework.web.multipart.MultipartFile> images = image != null ? List.of(image) : null;
+                                                   List<MultipartFile> images) {
         List<ParsedResponse> parsedList = geminiParserService.parseSchedule(text, images);
 
         if (parsedList.isEmpty()) {
             throw new IllegalArgumentException("분석된 일정이 없습니다.");
         }
+        if (parsedList.size() > 1) {
+            throw new IllegalArgumentException("여러 일정이 감지되었습니다. 하나의 일정만 입력하세요.");
+        }
+
         ParsedResponse parsed = parsedList.get(0);
 
         Schedule schedule = scheduleRepository.findById(scheduleId)
