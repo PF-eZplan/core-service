@@ -95,8 +95,12 @@ public class ScheduleService {
                     "반복 종료일(" + request.repeatEndDate() + ")은 시작일(" + request.startDate() + ")보다 빠를 수 없습니다.");
             }
             repeatEnd = request.repeatEndDate();
+        } else if (request.repeatPattern() != null && request.repeatPattern() != RepeatPattern.NONE) {
+            // 반복 종료일이 없으면 기본 1년 뒤로 설정
+            // null이면 repeatEnd = startDate가 되어 while 루프가 1회만 실행, 단건으로만 저장되는 버그 방지
+            repeatEnd = request.startDate().plusYears(1);
         } else {
-            // 종료일이 안 적혀있으면 시작일과 동일하게 맞춤 -> 무한루프 없이 단 1건만 생성 후 종료됨!
+            // 단건 일정: while 루프 1회만 돌도록 시작일과 동일하게 맞춤
             repeatEnd = request.startDate();
         }
 
