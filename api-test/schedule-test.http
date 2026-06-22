@@ -11,7 +11,7 @@
 @category_id = 7ed7c63a-59f0-421f-8af9-d96141db0fc9
 
 @base_url = http://localhost:8080
-# @base_url = https://calbak.o-r.kr
+# @base_url = https://eZplan.o-r.kr
 
 
 ### 1-A. Gemini AI 일정 파싱 (텍스트만 - 콤마로 여러 개 입력 테스트)
@@ -38,10 +38,10 @@ Content-Disposition: form-data; name="text"
 
 이 사진 속 일정 파싱해줘
 --WebAppBoundary
-Content-Disposition: form-data; name="images"; filename="sample3.jpg"
+Content-Disposition: form-data; name="images"; filename="sample4.jpg"
 Content-Type: image/jpeg
 
-< ./sample3.jpg
+< ./sample4.jpg
 --WebAppBoundary--
 
 
