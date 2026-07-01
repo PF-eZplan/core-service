@@ -59,11 +59,12 @@ jobs:
                     GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
                     FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
                     CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+                    IMAGE_TAG: ${{ github.sha }}
                 with:
                     host: ${{ secrets.EC2_HOST }}
                     username: ${{ secrets.EC2_USERNAME }}
                     key: ${{ secrets.EC2_SSH_KEY }}
-                    envs: DOCKERHUB_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,JWT_SECRET,GEMINI_API_KEY,FRONTEND_URL,CORS_ALLOWED_ORIGINS
+                    envs: DOCKERHUB_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,JWT_SECRET,GEMINI_API_KEY,FRONTEND_URL,CORS_ALLOWED_ORIGINS,IMAGE_TAG
                     script: |
                         set -Eeuo pipefail
                         cd ~/calbak || exit 1
@@ -80,12 +81,31 @@ jobs:
                         printf "GEMINI_API_KEY=%s\n" "$GEMINI_API_KEY" >> .env
                         printf "FRONTEND_URL=%s\n" "$FRONTEND_URL" >> .env
                         printf "CORS_ALLOWED_ORIGINS=%s\n" "$CORS_ALLOWED_ORIGINS" >> .env
+                        printf "IMAGE_TAG=%s\n" "$IMAGE_TAG" >> .env
 
                         sudo docker-compose pull
                         sudo docker-compose down
                         sudo docker-compose up -d
 
-                        # 태그 중복 출력을 uniq로 제거 후, 현재+직전 이미지 유지하고 나머지 삭제
+                        echo "Starting production-grade health check loop..."
+                        HEALTH_SUCCESS=false
+                        for i in $(seq 1 12); do
+                            sleep 5
+                            if sudo docker-compose ps | grep -q "Up"; then
+                                echo "Health Check Passed successfully."
+                                HEALTH_SUCCESS=true
+                                break
+                            fi
+                            echo "Container is still initializing... retry ($i/12)"
+                        done
+
+                        if [ "$HEALTH_SUCCESS" = false ]; then
+                            echo "Health Check Failed: Container did not enter 'Up' state within 60 seconds."
+                            sudo docker-compose logs --tail=50
+                            exit 1
+                        fi
+
+                        # 고유 태그 배포 방식으로 유연하게 N-1 롤백 이미지를 유지하며 오래된 찌꺼기만 삭제
                         sudo docker images -q "$DOCKERHUB_USERNAME/calbak-api" | uniq | tail -n +3 | xargs -r sudo docker rmi -f || true
                         # dangling 이미지 전체 정리
                         sudo docker image prune -f || true
