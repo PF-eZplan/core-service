@@ -42,7 +42,18 @@ jobs:
                 with:
                     context: .
                     push: true
-                    tags: ${{ secrets.DOCKERHUB_USERNAME }}/calbak-api:latest
+                    tags: |
+                        ${{ secrets.DOCKERHUB_USERNAME }}/calbak-api:latest
+                        ${{ secrets.DOCKERHUB_USERNAME }}/calbak-api:${{ github.sha }}
+
+            -   name: Validate Environment Variables
+                env:
+                    CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+                run: |
+                    if [ -z "${CORS_ALLOWED_ORIGINS//[[:space:]]/}" ]; then
+                        echo "Error: CORS_ALLOWED_ORIGINS variable is missing or blank!"
+                        exit 1
+                    fi
 
             -   name: Deploy to AWS EC2
                 uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262
@@ -56,11 +67,13 @@ jobs:
                     JWT_SECRET: ${{ secrets.JWT_SECRET }}
                     GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
                     FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+                    CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+                    IMAGE_TAG: ${{ github.sha }}
                 with:
                     host: ${{ secrets.EC2_HOST }}
                     username: ${{ secrets.EC2_USERNAME }}
                     key: ${{ secrets.EC2_SSH_KEY }}
-                    envs: DOCKERHUB_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,JWT_SECRET,GEMINI_API_KEY,FRONTEND_URL
+                    envs: DOCKERHUB_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,JWT_SECRET,GEMINI_API_KEY,FRONTEND_URL,CORS_ALLOWED_ORIGINS,IMAGE_TAG
                     script: |
                         set -Eeuo pipefail
                         cd ~/calbak || exit 1
@@ -76,8 +89,59 @@ jobs:
                         printf "JWT_SECRET=%s\n" "$JWT_SECRET" >> .env
                         printf "GEMINI_API_KEY=%s\n" "$GEMINI_API_KEY" >> .env
                         printf "FRONTEND_URL=%s\n" "$FRONTEND_URL" >> .env
+                        printf "CORS_ALLOWED_ORIGINS=%s\n" "$CORS_ALLOWED_ORIGINS" >> .env
+                        printf "IMAGE_TAG=%s\n" "$IMAGE_TAG" >> .env
 
                         sudo docker-compose pull
                         sudo docker-compose down
                         sudo docker-compose up -d
-                        sudo docker image prune -f
+
+                        LAST_STABLE_TAG_FILE=".last_stable_image_tag"
+
+                        # Actuator 기반의 헬스 체크 폴링 적용
+                        echo "Starting production-grade health check loop..."
+                        HEALTH_SUCCESS=false
+                        for i in $(seq 1 12); do
+                            sleep 5
+                            # curl 명령어에 timeout을 명시하여 무한 대기 현상 방지
+                            if sudo docker-compose ps api | grep -q "Up" && \
+                               curl --connect-timeout 2 --max-time 4 -sf http://localhost:8080/actuator/health > /dev/null; then
+                                echo "Health Check Passed successfully."
+                                HEALTH_SUCCESS=true
+                                break
+                            fi
+                            echo "Container is still initializing... retry ($i/12)"
+                        done
+
+                        # 헬스 체크 실패 시 롤백 적용
+                        if [ "$HEALTH_SUCCESS" = false ]; then
+                            echo "Health Check Failed: Container did not enter healthy state within 60 seconds."
+                            sudo docker-compose logs --tail=50
+                            echo "Rolling back to last known successful image tag..."
+                        
+                            # 실패 시 변수에 저장된 파일명을 기반으로 태그 읽어오기
+                            PREV_TAG=$(cat "$LAST_STABLE_TAG_FILE" 2>/dev/null || true)
+                        
+                            if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$IMAGE_TAG" ]; then
+                                echo "Rollback Target Tag found: $PREV_TAG"
+                                sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$PREV_TAG/" .env
+                                sudo docker-compose up -d
+                                echo "Rollback triggered. The pipeline will now exit with failure."
+                            else
+                                echo "No valid previous successful tag found for rollback. Shutting down."
+                                sudo docker-compose down
+                            fi
+                            exit 1
+                        fi
+
+                        # 헬스 체크를 무사히 통과한 경우에만 안전한 태그를 파일에 영구 기록
+                        printf "%s\n" "$IMAGE_TAG" > "$LAST_STABLE_TAG_FILE"
+
+                        # 탭(\t) 구분자를 통한 날짜/시간 기준 N-1 이미지 유지 스크립트
+                        sudo docker images --format '{{.ID}}\t{{.CreatedAt}}' "$DOCKERHUB_USERNAME/calbak-api" \
+                            | sort -t$'\t' -k2 -r \
+                            | awk -F'\t' '{print $1}' \
+                            | uniq | tail -n +3 \
+                            | xargs -r sudo docker rmi -f || true
+                        
+                        sudo docker image prune -f || true
