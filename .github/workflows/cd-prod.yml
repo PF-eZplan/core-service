@@ -50,7 +50,7 @@ jobs:
                 env:
                     CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
                 run: |
-                    if [ -z "$(echo "$CORS_ALLOWED_ORIGINS" | xargs)" ]; then
+                    if [ -z "${CORS_ALLOWED_ORIGINS//[[:space:]]/}" ]; then
                         echo "Error: CORS_ALLOWED_ORIGINS variable is missing or blank!"
                         exit 1
                     fi
@@ -96,6 +96,8 @@ jobs:
                         sudo docker-compose down
                         sudo docker-compose up -d
 
+                        LAST_STABLE_TAG_FILE=".last_stable_image_tag"
+
                         # Actuator 기반의 헬스 체크 폴링 적용
                         echo "Starting production-grade health check loop..."
                         HEALTH_SUCCESS=false
@@ -106,7 +108,6 @@ jobs:
                                curl --connect-timeout 2 --max-time 4 -sf http://localhost:8080/actuator/health > /dev/null; then
                                 echo "Health Check Passed successfully."
                                 HEALTH_SUCCESS=true
-                                echo "$IMAGE_TAG" > .last_successful_tag
                                 break
                             fi
                             echo "Container is still initializing... retry ($i/12)"
@@ -118,7 +119,8 @@ jobs:
                             sudo docker-compose logs --tail=50
                             echo "Rolling back to last known successful image tag..."
                         
-                            PREV_TAG=$(cat .last_successful_tag 2>/dev/null || echo "")
+                            # 실패 시 변수에 저장된 파일명을 기반으로 태그 읽어오기
+                            PREV_TAG=$(cat "$LAST_STABLE_TAG_FILE" 2>/dev/null || true)
                         
                             if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$IMAGE_TAG" ]; then
                                 echo "Rollback Target Tag found: $PREV_TAG"
@@ -131,6 +133,9 @@ jobs:
                             fi
                             exit 1
                         fi
+
+                        # 헬스 체크를 무사히 통과한 경우에만 안전한 태그를 파일에 영구 기록
+                        printf "%s\n" "$IMAGE_TAG" > "$LAST_STABLE_TAG_FILE"
 
                         # 탭(\t) 구분자를 통한 날짜/시간 기준 N-1 이미지 유지 스크립트
                         sudo docker images --format '{{.ID}}\t{{.CreatedAt}}' "$DOCKERHUB_USERNAME/calbak-api" \
