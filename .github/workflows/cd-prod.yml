@@ -46,10 +46,11 @@ jobs:
                         ${{ secrets.DOCKERHUB_USERNAME }}/calbak-api:latest
                         ${{ secrets.DOCKERHUB_USERNAME }}/calbak-api:${{ github.sha }}
 
-            # CORS 변수 누락 1차 방어
             -   name: Validate Environment Variables
+                env:
+                    CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
                 run: |
-                    if [ -z "${{ vars.CORS_ALLOWED_ORIGINS }}" ]; then
+                    if [ -z "$(echo "$CORS_ALLOWED_ORIGINS" | xargs)" ]; then
                         echo "Error: CORS_ALLOWED_ORIGINS variable is missing or blank!"
                         exit 1
                     fi
@@ -105,6 +106,7 @@ jobs:
                                curl --connect-timeout 2 --max-time 4 -sf http://localhost:8080/actuator/health > /dev/null; then
                                 echo "Health Check Passed successfully."
                                 HEALTH_SUCCESS=true
+                                echo "$IMAGE_TAG" > .last_successful_tag
                                 break
                             fi
                             echo "Container is still initializing... retry ($i/12)"
@@ -114,24 +116,27 @@ jobs:
                         if [ "$HEALTH_SUCCESS" = false ]; then
                             echo "Health Check Failed: Container did not enter healthy state within 60 seconds."
                             sudo docker-compose logs --tail=50
-                            echo "Rolling back to previous image tag..."
+                            echo "Rolling back to last known successful image tag..."
                         
-                            # awk가 공백이 아닌 탭(\t)을 기준으로 열을 분리하게 하고, <none> 태그를 롤백 대상에서 제외
-                            PREV_TAG=$(sudo docker images --format '{{.CreatedAt}}\t{{.Tag}}' "$DOCKERHUB_USERNAME/calbak-api" | sort -r | awk -F '\t' -v curr="$IMAGE_TAG" '$2 != "latest" && $2 != curr && $2 != "<none>" {print $2; exit}')
+                            PREV_TAG=$(cat .last_successful_tag 2>/dev/null || echo "")
                         
-                            if [ -n "$PREV_TAG" ]; then
+                            if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$IMAGE_TAG" ]; then
                                 echo "Rollback Target Tag found: $PREV_TAG"
                                 sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$PREV_TAG/" .env
                                 sudo docker-compose up -d
                                 echo "Rollback triggered. The pipeline will now exit with failure."
                             else
-                                echo "No valid previous tag found for rollback. Shutting down."
+                                echo "No valid previous successful tag found for rollback. Shutting down."
                                 sudo docker-compose down
                             fi
                             exit 1
                         fi
 
-                         # 명시적 정렬 및 N-1 유지
-                        sudo docker images --format '{{.ID}} {{.CreatedAt}}' "$DOCKERHUB_USERNAME/calbak-api" | sort -k2 -r | awk '{print $1}' | uniq | tail -n +3 | xargs -r sudo docker rmi -f || true
-                         # dangling 이미지 전체 정리
+                        # 탭(\t) 구분자를 통한 날짜/시간 기준 N-1 이미지 유지 스크립트
+                        sudo docker images --format '{{.ID}}\t{{.CreatedAt}}' "$DOCKERHUB_USERNAME/calbak-api" \
+                            | sort -t$'\t' -k2 -r \
+                            | awk -F'\t' '{print $1}' \
+                            | uniq | tail -n +3 \
+                            | xargs -r sudo docker rmi -f || true
+                        
                         sudo docker image prune -f || true
