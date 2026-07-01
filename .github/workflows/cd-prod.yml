@@ -46,6 +46,14 @@ jobs:
                         ${{ secrets.DOCKERHUB_USERNAME }}/calbak-api:latest
                         ${{ secrets.DOCKERHUB_USERNAME }}/calbak-api:${{ github.sha }}
 
+            # CORS 변수 누락 1차 방어
+            -   name: Validate Environment Variables
+                run: |
+                    if [ -z "${{ vars.CORS_ALLOWED_ORIGINS }}" ]; then
+                        echo "Error: CORS_ALLOWED_ORIGINS variable is missing or blank!"
+                        exit 1
+                    fi
+
             -   name: Deploy to AWS EC2
                 uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262
                 env:
@@ -87,11 +95,14 @@ jobs:
                         sudo docker-compose down
                         sudo docker-compose up -d
 
+                        # Actuator 기반의 헬스 체크 폴링 적용
                         echo "Starting production-grade health check loop..."
                         HEALTH_SUCCESS=false
                         for i in $(seq 1 12); do
                             sleep 5
-                            if sudo docker-compose ps | grep -q "Up"; then
+                            # curl 명령어에 timeout을 명시하여 무한 대기 현상 방지
+                            if sudo docker-compose ps api | grep -q "Up" && \
+                               curl --connect-timeout 2 --max-time 4 -sf http://localhost:8080/actuator/health > /dev/null; then
                                 echo "Health Check Passed successfully."
                                 HEALTH_SUCCESS=true
                                 break
@@ -99,13 +110,28 @@ jobs:
                             echo "Container is still initializing... retry ($i/12)"
                         done
 
+                        # 헬스 체크 실패 시 롤백 적용
                         if [ "$HEALTH_SUCCESS" = false ]; then
-                            echo "Health Check Failed: Container did not enter 'Up' state within 60 seconds."
+                            echo "Health Check Failed: Container did not enter healthy state within 60 seconds."
                             sudo docker-compose logs --tail=50
+                            echo "Rolling back to previous image tag..."
+                        
+                            # awk가 공백이 아닌 탭(\t)을 기준으로 열을 분리하게 하고, <none> 태그를 롤백 대상에서 제외
+                            PREV_TAG=$(sudo docker images --format '{{.CreatedAt}}\t{{.Tag}}' "$DOCKERHUB_USERNAME/calbak-api" | sort -r | awk -F '\t' -v curr="$IMAGE_TAG" '$2 != "latest" && $2 != curr && $2 != "<none>" {print $2; exit}')
+                        
+                            if [ -n "$PREV_TAG" ]; then
+                                echo "Rollback Target Tag found: $PREV_TAG"
+                                sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$PREV_TAG/" .env
+                                sudo docker-compose up -d
+                                echo "Rollback triggered. The pipeline will now exit with failure."
+                            else
+                                echo "No valid previous tag found for rollback. Shutting down."
+                                sudo docker-compose down
+                            fi
                             exit 1
                         fi
 
-                        # 고유 태그 배포 방식으로 유연하게 N-1 롤백 이미지를 유지하며 오래된 찌꺼기만 삭제
-                        sudo docker images -q "$DOCKERHUB_USERNAME/calbak-api" | uniq | tail -n +3 | xargs -r sudo docker rmi -f || true
-                        # dangling 이미지 전체 정리
+                         # 명시적 정렬 및 N-1 유지
+                        sudo docker images --format '{{.ID}} {{.CreatedAt}}' "$DOCKERHUB_USERNAME/calbak-api" | sort -k2 -r | awk '{print $1}' | uniq | tail -n +3 | xargs -r sudo docker rmi -f || true
+                         # dangling 이미지 전체 정리
                         sudo docker image prune -f || true
