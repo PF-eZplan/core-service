@@ -16,4 +16,5 @@ services:
             - JWT_SECRET=${JWT_SECRET}
             - GEMINI_API_KEY=${GEMINI_API_KEY}
             - FRONTEND_URL=${FRONTEND_URL}
+            - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
         restart: always
