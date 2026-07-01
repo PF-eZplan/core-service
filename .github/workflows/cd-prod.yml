@@ -42,7 +42,9 @@ jobs:
                 with:
                     context: .
                     push: true
-                    tags: ${{ secrets.DOCKERHUB_USERNAME }}/calbak-api:latest
+                    tags: |
+                        ${{ secrets.DOCKERHUB_USERNAME }}/calbak-api:latest
+                        ${{ secrets.DOCKERHUB_USERNAME }}/calbak-api:${{ github.sha }}
 
             -   name: Deploy to AWS EC2
                 uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262
@@ -82,4 +84,8 @@ jobs:
                         sudo docker-compose pull
                         sudo docker-compose down
                         sudo docker-compose up -d
-                        sudo docker image prune -a -f
+
+                        # 태그 중복 출력을 uniq로 제거 후, 현재+직전 이미지 유지하고 나머지 삭제
+                        sudo docker images -q "$DOCKERHUB_USERNAME/calbak-api" | uniq | tail -n +3 | xargs -r sudo docker rmi -f || true
+                        # dangling 이미지 전체 정리
+                        sudo docker image prune -f || true
